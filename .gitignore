@@ -8,6 +8,7 @@ build/
 *.js
 *.js.map
 !manifest.json
+!build.js
 
 # IDE and editors
 .vscode/

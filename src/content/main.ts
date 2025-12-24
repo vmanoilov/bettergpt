@@ -5,9 +5,13 @@
  * - Initializes the UI components on web pages
  * - Manages communication with the background service worker
  * - Handles user interactions within the page context
+ * - Initializes ChatGPT integration for conversation capture
  */
 
 import { UIManager } from './ui/UIManager';
+import { chatGPTIntegration } from '../integrations/chatgpt';
+import { conversationManager } from '../managers/conversation-manager';
+import { folderManager } from '../managers/folder-manager';
 
 // Global state
 let uiManager: UIManager | null = null;
@@ -33,6 +37,16 @@ async function initialize(): Promise<void> {
     if (response.success) {
       console.log('[BetterGPT Content] Configuration received:', response.config);
       
+      // Initialize managers
+      conversationManager.initialize();
+      folderManager.initialize();
+      
+      // Initialize ChatGPT integration if on ChatGPT page
+      if (isChatGPTPage()) {
+        console.log('[BetterGPT Content] Initializing ChatGPT integration');
+        await chatGPTIntegration.initialize();
+      }
+      
       // Initialize UI Manager
       uiManager = new UIManager(response.config);
       await uiManager.initialize();
@@ -49,6 +63,14 @@ async function initialize(): Promise<void> {
       console.warn('[BetterGPT Content] Extension context invalidated, may need reload');
     }
   }
+}
+
+/**
+ * Check if current page is ChatGPT
+ */
+function isChatGPTPage(): boolean {
+  return window.location.hostname.includes('chat.openai.com') ||
+         window.location.hostname.includes('chatgpt.com');
 }
 
 /**
@@ -101,6 +123,15 @@ window.addEventListener('beforeunload', () => {
   if (uiManager) {
     uiManager.destroy();
   }
+  
+  // Cleanup ChatGPT integration
+  if (isChatGPTPage()) {
+    chatGPTIntegration.destroy();
+  }
+  
+  // Cleanup managers
+  conversationManager.destroy();
+  folderManager.destroy();
 });
 
 // Initialize when DOM is ready

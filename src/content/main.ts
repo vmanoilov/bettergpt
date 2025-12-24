@@ -1,17 +1,20 @@
 /**
  * Content Script Main Entry Point for BetterGPT Chrome Extension
- * 
+ *
  * This script:
- * - Initializes the UI components on web pages
+ * - Initializes the Svelte UI components on web pages
  * - Manages communication with the background service worker
  * - Handles user interactions within the page context
  */
 
-import { UIManager } from './ui/UIManager';
+import App from '@components/App.svelte';
+import { isUIVisible, config } from '@stores';
+import '@/styles/global.css';
 
 // Global state
-let uiManager: UIManager | null = null;
+let app: App | null = null;
 let isInitialized = false;
+let appContainer: HTMLElement | null = null;
 
 /**
  * Initialize the content script
@@ -27,16 +30,25 @@ async function initialize(): Promise<void> {
   try {
     // Get configuration from background
     const response = await chrome.runtime.sendMessage({
-      type: 'GET_CONFIG'
+      type: 'GET_CONFIG',
     });
 
     if (response.success) {
       console.log('[BetterGPT Content] Configuration received:', response.config);
-      
-      // Initialize UI Manager
-      uiManager = new UIManager(response.config);
-      await uiManager.initialize();
-      
+
+      // Update config store
+      config.set(response.config);
+
+      // Create container for Svelte app
+      appContainer = document.createElement('div');
+      appContainer.id = 'bettergpt-root';
+      document.body.appendChild(appContainer);
+
+      // Initialize Svelte app
+      app = new App({
+        target: appContainer,
+      });
+
       isInitialized = true;
       console.log('[BetterGPT Content] Initialization complete');
     } else {
@@ -59,21 +71,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   switch (message.type) {
     case 'TOGGLE_UI':
-      if (uiManager) {
-        uiManager.toggle();
-        sendResponse({ success: true });
-      } else {
-        sendResponse({ success: false, error: 'UI not initialized' });
-      }
+      isUIVisible.update((value) => !value);
+      sendResponse({ success: true });
       break;
 
     case 'UPDATE_CONFIG':
-      if (uiManager) {
-        uiManager.updateConfig(message.config);
-        sendResponse({ success: true });
-      } else {
-        sendResponse({ success: false, error: 'UI not initialized' });
-      }
+      config.set(message.config);
+      sendResponse({ success: true });
       break;
 
     default:
@@ -88,9 +92,7 @@ document.addEventListener('keydown', (event) => {
   // Check for Ctrl+Shift+A (default toggle shortcut)
   if (event.ctrlKey && event.shiftKey && event.key === 'A') {
     event.preventDefault();
-    if (uiManager) {
-      uiManager.toggle();
-    }
+    isUIVisible.update((value) => !value);
   }
 });
 
@@ -98,8 +100,11 @@ document.addEventListener('keydown', (event) => {
  * Cleanup on page unload
  */
 window.addEventListener('beforeunload', () => {
-  if (uiManager) {
-    uiManager.destroy();
+  if (app) {
+    app.$destroy();
+  }
+  if (appContainer) {
+    appContainer.remove();
   }
 });
 
@@ -111,4 +116,4 @@ if (document.readyState === 'loading') {
 }
 
 // Export for testing
-export { initialize, uiManager };
+export { initialize, app };

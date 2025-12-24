@@ -16,12 +16,7 @@ export interface ExtensionConfig {
 /**
  * Message types for communication between components
  */
-export type MessageType =
-  | 'PING'
-  | 'GET_CONFIG'
-  | 'UPDATE_CONFIG'
-  | 'AI_REQUEST'
-  | 'TOGGLE_UI';
+export type MessageType = 'PING' | 'GET_CONFIG' | 'UPDATE_CONFIG' | 'AI_REQUEST' | 'TOGGLE_UI';
 
 /**
  * Base message structure with typed payloads
@@ -52,11 +47,11 @@ export interface AIRequestMessage extends BaseMessage {
   payload: AIRequestPayload;
 }
 
-export type Message = 
-  | PingMessage 
-  | GetConfigMessage 
-  | UpdateConfigMessage 
-  | ToggleUIMessage 
+export type Message =
+  | PingMessage
+  | GetConfigMessage
+  | UpdateConfigMessage
+  | ToggleUIMessage
   | AIRequestMessage;
 
 /**
@@ -80,10 +75,10 @@ export interface AIResponseMessage extends BaseMessageResponse {
   result?: string;
 }
 
-export type MessageResponse = 
-  | BaseMessageResponse 
-  | PingResponse 
-  | ConfigResponse 
+export type MessageResponse =
+  | BaseMessageResponse
+  | PingResponse
+  | ConfigResponse
   | AIResponseMessage;
 
 /**

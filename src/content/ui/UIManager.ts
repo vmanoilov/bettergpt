@@ -1,6 +1,6 @@
 /**
  * UIManager - Manages the UI components for the content script
- * 
+ *
  * This class handles:
  * - Creating and destroying UI elements
  * - Managing component lifecycle
@@ -42,7 +42,7 @@ export class UIManager {
       transform: translateX(100%);
       transition: transform 0.3s ease-in-out;
     `;
-    
+
     document.body.appendChild(this.container);
 
     // Initialize chat panel

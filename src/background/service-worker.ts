@@ -1,6 +1,6 @@
 /**
  * Background Service Worker for BetterGPT Chrome Extension
- * 
+ *
  * This service worker handles:
  * - Extension lifecycle events
  * - Message passing between content scripts and extension
@@ -9,11 +9,17 @@
  */
 
 import type { AIRequestPayload, AIResponseMessage, ConfigResponse } from '../content/types';
+import { db } from '@lib/db';
+
+// Initialize database when service worker starts
+db.open().catch((error) => {
+  console.error('[BetterGPT] Failed to open database:', error);
+});
 
 // Extension installation/update handler
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('[BetterGPT] Extension installed/updated', details.reason);
-  
+
   if (details.reason === 'install') {
     // First-time installation setup
     handleFirstInstall();
@@ -32,21 +38,21 @@ chrome.runtime.onStartup.addListener(() => {
 // Message listener for communication with content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('[BetterGPT] Message received:', message);
-  
+
   // Handle different message types
   switch (message.type) {
     case 'PING':
       sendResponse({ status: 'ok', message: 'pong' });
       break;
-      
+
     case 'GET_CONFIG':
       handleGetConfig(sendResponse);
       return true; // Indicates async response
-      
+
     case 'AI_REQUEST':
       handleAIRequest(message.payload, sendResponse);
       return true; // Indicates async response
-      
+
     default:
       console.warn('[BetterGPT] Unknown message type:', message.type);
       sendResponse({ error: 'Unknown message type' });
@@ -66,18 +72,21 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
  */
 async function handleFirstInstall(): Promise<void> {
   console.log('[BetterGPT] Setting up first-time installation');
-  
+
   // Set default configuration
   await chrome.storage.sync.set({
     config: {
       enabled: true,
       theme: 'light',
       shortcuts: {
-        toggleUI: 'Ctrl+Shift+A'
-      }
-    }
+        toggleUI: 'Ctrl+Shift+A',
+      },
+    },
   });
-  
+
+  // Initialize database with defaults
+  await db.initializeDefaults();
+
   console.log('[BetterGPT] Default configuration saved');
 }
 
@@ -94,10 +103,13 @@ async function handleUpdate(previousVersion?: string): Promise<void> {
  */
 async function initializeExtension(): Promise<void> {
   console.log('[BetterGPT] Initializing extension');
-  
+
   // Load configuration
   const { config } = await chrome.storage.sync.get('config');
   console.log('[BetterGPT] Configuration loaded:', config);
+
+  // Ensure database is initialized
+  await db.initializeDefaults();
 }
 
 /**
@@ -122,13 +134,13 @@ async function handleAIRequest(
 ): Promise<void> {
   try {
     console.log('[BetterGPT] Processing AI request:', payload);
-    
+
     // TODO: Implement actual AI request logic
     // This is a placeholder for future implementation
-    
+
     sendResponse({
       success: true,
-      result: 'AI request processing not yet implemented'
+      result: 'AI request processing not yet implemented',
     });
   } catch (error) {
     console.error('[BetterGPT] Error processing AI request:', error);

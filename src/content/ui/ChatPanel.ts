@@ -1,6 +1,6 @@
 /**
  * ChatPanel Component - Main chat interface
- * 
+ *
  * This component provides:
  * - Chat interface for AI interactions
  * - Message history display

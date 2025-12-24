@@ -220,8 +220,8 @@ export class ChatPanel {
    */
   destroy(): void {
     console.log('[ChatPanel] Destroying');
-    if (this.panelElement && this.panelElement.parentNode) {
-      this.panelElement.parentNode.removeChild(this.panelElement);
+    if (this.panelElement) {
+      this.panelElement.remove();
       this.panelElement = null;
     }
   }

@@ -122,8 +122,8 @@ export class UIManager {
       this.chatPanel = null;
     }
 
-    if (this.container && this.container.parentNode) {
-      this.container.parentNode.removeChild(this.container);
+    if (this.container) {
+      this.container.remove();
       this.container = null;
     }
 

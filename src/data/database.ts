@@ -9,7 +9,7 @@
  */
 
 import Dexie, { Table } from 'dexie';
-import type { Conversation, Folder } from '../content/types';
+import type { Conversation, Folder, ConversationLink } from '../content/types';
 
 /**
  * BetterGPT Database class
@@ -18,14 +18,22 @@ export class BetterGPTDatabase extends Dexie {
   // Tables
   conversations!: Table<Conversation, string>;
   folders!: Table<Folder, string>;
+  conversationLinks!: Table<ConversationLink, string>;
 
   constructor() {
     super('BetterGPTDB');
 
-    // Define database schema
+    // Define database schema - version 1
     this.version(1).stores({
       conversations: 'id, title, model, createdAt, updatedAt, folderId, parentId, isArchived, isFavorite, *tags',
       folders: 'id, name, parentId, createdAt, updatedAt'
+    });
+
+    // Version 2: Add conversation links table
+    this.version(2).stores({
+      conversations: 'id, title, model, createdAt, updatedAt, folderId, parentId, isArchived, isFavorite, *tags',
+      folders: 'id, name, parentId, createdAt, updatedAt',
+      conversationLinks: 'id, sourceId, targetId, type, createdAt'
     });
   }
 
@@ -245,6 +253,66 @@ export class BetterGPTDatabase extends Dexie {
       .where('parentId')
       .equals(parentId)
       .toArray();
+  }
+
+  /**
+   * Save a conversation link
+   */
+  async saveConversationLink(link: ConversationLink): Promise<void> {
+    await this.conversationLinks.put(link);
+  }
+
+  /**
+   * Get links for a conversation (both source and target)
+   */
+  async getConversationLinks(conversationId: string): Promise<ConversationLink[]> {
+    const sourceLinks = await this.conversationLinks
+      .where('sourceId')
+      .equals(conversationId)
+      .toArray();
+    
+    const targetLinks = await this.conversationLinks
+      .where('targetId')
+      .equals(conversationId)
+      .toArray();
+    
+    return [...sourceLinks, ...targetLinks];
+  }
+
+  /**
+   * Get outgoing links from a conversation
+   */
+  async getOutgoingLinks(conversationId: string): Promise<ConversationLink[]> {
+    return await this.conversationLinks
+      .where('sourceId')
+      .equals(conversationId)
+      .toArray();
+  }
+
+  /**
+   * Get incoming links to a conversation
+   */
+  async getIncomingLinks(conversationId: string): Promise<ConversationLink[]> {
+    return await this.conversationLinks
+      .where('targetId')
+      .equals(conversationId)
+      .toArray();
+  }
+
+  /**
+   * Delete a conversation link
+   */
+  async deleteConversationLink(linkId: string): Promise<void> {
+    await this.conversationLinks.delete(linkId);
+  }
+
+  /**
+   * Delete all links for a conversation
+   */
+  async deleteConversationLinks(conversationId: string): Promise<void> {
+    const links = await this.getConversationLinks(conversationId);
+    const linkIds = links.map(link => link.id);
+    await this.conversationLinks.bulkDelete(linkIds);
   }
 }
 

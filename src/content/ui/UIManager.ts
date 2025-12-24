@@ -10,6 +10,9 @@
 import { ChatPanel } from './ChatPanel';
 import type { ExtensionConfig } from '../types';
 
+// UI configuration constants
+const MAX_Z_INDEX = 2147483647; // Maximum z-index value to ensure extension UI is always on top
+
 export class UIManager {
   private config: ExtensionConfig;
   private chatPanel: ChatPanel | null = null;
@@ -35,7 +38,7 @@ export class UIManager {
       right: 0;
       width: 400px;
       height: 100vh;
-      z-index: 2147483647;
+      z-index: ${MAX_Z_INDEX};
       transform: translateX(100%);
       transition: transform 0.3s ease-in-out;
     `;

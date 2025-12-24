@@ -24,21 +24,67 @@ export type MessageType =
   | 'TOGGLE_UI';
 
 /**
- * Base message structure
+ * Base message structure with typed payloads
  */
-export interface Message {
+export interface BaseMessage {
   type: MessageType;
-  payload?: any;
 }
+
+export interface PingMessage extends BaseMessage {
+  type: 'PING';
+}
+
+export interface GetConfigMessage extends BaseMessage {
+  type: 'GET_CONFIG';
+}
+
+export interface UpdateConfigMessage extends BaseMessage {
+  type: 'UPDATE_CONFIG';
+  config: ExtensionConfig;
+}
+
+export interface ToggleUIMessage extends BaseMessage {
+  type: 'TOGGLE_UI';
+}
+
+export interface AIRequestMessage extends BaseMessage {
+  type: 'AI_REQUEST';
+  payload: AIRequestPayload;
+}
+
+export type Message = 
+  | PingMessage 
+  | GetConfigMessage 
+  | UpdateConfigMessage 
+  | ToggleUIMessage 
+  | AIRequestMessage;
 
 /**
  * Response structure for messages
  */
-export interface MessageResponse {
+export interface BaseMessageResponse {
   success: boolean;
   error?: string;
-  [key: string]: any;
 }
+
+export interface PingResponse extends BaseMessageResponse {
+  status: string;
+  message: string;
+}
+
+export interface ConfigResponse extends BaseMessageResponse {
+  config?: ExtensionConfig;
+}
+
+export interface AIResponseMessage extends BaseMessageResponse {
+  result?: string;
+}
+
+export type MessageResponse = 
+  | BaseMessageResponse 
+  | PingResponse 
+  | ConfigResponse 
+  | AIResponseMessage;
 
 /**
  * AI request payload

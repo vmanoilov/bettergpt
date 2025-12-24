@@ -8,6 +8,8 @@
  * - State management across extension components
  */
 
+import type { AIRequestPayload, AIResponseMessage, ConfigResponse } from '../content/types';
+
 // Extension installation/update handler
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('[BetterGPT] Extension installed/updated', details.reason);
@@ -101,7 +103,7 @@ async function initializeExtension(): Promise<void> {
 /**
  * Handle configuration requests
  */
-async function handleGetConfig(sendResponse: (response: any) => void): Promise<void> {
+async function handleGetConfig(sendResponse: (response: ConfigResponse) => void): Promise<void> {
   try {
     const { config } = await chrome.storage.sync.get('config');
     sendResponse({ success: true, config });
@@ -115,8 +117,8 @@ async function handleGetConfig(sendResponse: (response: any) => void): Promise<v
  * Handle AI requests
  */
 async function handleAIRequest(
-  payload: any,
-  sendResponse: (response: any) => void
+  payload: AIRequestPayload,
+  sendResponse: (response: AIResponseMessage) => void
 ): Promise<void> {
   try {
     console.log('[BetterGPT] Processing AI request:', payload);

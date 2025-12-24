@@ -338,14 +338,14 @@ export class ChatGPTInterceptor {
    * Generate conversation ID
    */
   private generateConversationId(baseId?: string): string {
-    return baseId || `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return baseId || `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**
    * Generate message ID
    */
   private generateMessageId(): string {
-    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**

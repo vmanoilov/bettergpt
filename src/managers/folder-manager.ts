@@ -157,7 +157,7 @@ export class FolderManager {
    * Generate folder ID
    */
   private generateFolderId(): string {
-    return `folder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `folder_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**

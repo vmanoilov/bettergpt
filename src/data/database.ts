@@ -66,7 +66,7 @@ export class BetterGPTDatabase extends Dexie {
   async getFavoriteConversations(): Promise<Conversation[]> {
     return await this.conversations
       .where('isFavorite')
-      .equals(1)
+      .equals(true)
       .toArray();
   }
 
@@ -76,7 +76,7 @@ export class BetterGPTDatabase extends Dexie {
   async getArchivedConversations(): Promise<Conversation[]> {
     return await this.conversations
       .where('isArchived')
-      .equals(1)
+      .equals(true)
       .toArray();
   }
 
@@ -86,7 +86,7 @@ export class BetterGPTDatabase extends Dexie {
   async getActiveConversations(): Promise<Conversation[]> {
     return await this.conversations
       .where('isArchived')
-      .equals(0)
+      .equals(false)
       .toArray();
   }
 
@@ -137,22 +137,41 @@ export class BetterGPTDatabase extends Dexie {
 
   /**
    * Search conversations by title or content
+   * Note: For better performance with large datasets, consider implementing
+   * a more sophisticated search solution with pagination or indexing
    */
-  async searchConversations(query: string): Promise<Conversation[]> {
-    const lowerQuery = query.toLowerCase();
-    const allConversations = await this.conversations.toArray();
+  async searchConversations(query: string, limit: number = 100): Promise<Conversation[]> {
+    if (!query || query.trim() === '') {
+      return [];
+    }
     
-    return allConversations.filter(conv => {
+    const lowerQuery = query.toLowerCase();
+    const results: Conversation[] = [];
+    
+    // Use efficient database cursor instead of loading all at once
+    await this.conversations.each(conv => {
+      // Stop if we've reached the limit
+      if (results.length >= limit) {
+        return false; // Break the iteration
+      }
+      
       // Search in title
       if (conv.title.toLowerCase().includes(lowerQuery)) {
-        return true;
+        results.push(conv);
+        return;
       }
       
       // Search in message content
-      return conv.messages.some(msg => 
+      const hasMatchingMessage = conv.messages.some(msg => 
         msg.content.toLowerCase().includes(lowerQuery)
       );
+      
+      if (hasMatchingMessage) {
+        results.push(conv);
+      }
     });
+    
+    return results;
   }
 
   /**
@@ -180,12 +199,8 @@ export class BetterGPTDatabase extends Dexie {
    * Get root folders (no parent)
    */
   async getRootFolders(): Promise<Folder[]> {
-    return await this.folders
-      .where('parentId')
-      .equals('')
-      .or('parentId')
-      .equals(undefined as any)
-      .toArray();
+    const allFolders = await this.folders.toArray();
+    return allFolders.filter(folder => !folder.parentId || folder.parentId === '');
   }
 
   /**

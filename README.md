@@ -4,9 +4,27 @@
 
 BetterGPT is a Chrome extension designed to provide an intelligent, context-aware AI assistant directly within your browser. Built with modern web technologies, it aims to enhance your browsing experience with seamless AI interactions.
 
+## ✨ Phase 2 Features (Current)
+
+### ChatGPT Integration
+- **API Interception**: Automatically captures ChatGPT conversations in real-time
+- **DOM Monitoring**: Tracks conversation changes and updates
+- **Sidebar UI**: Injected sidebar in ChatGPT for quick access to saved conversations
+- **Streaming Support**: Handles both regular and streaming API responses
+- **Metadata Extraction**: Captures model info, token usage, and conversation metadata
+
+### Conversation Management
+- **Auto-Save**: Conversations are automatically saved to IndexedDB
+- **Folder Organization**: Create folders to organize conversations
+- **Archive/Favorite**: Mark conversations as archived or favorite
+- **Bulk Operations**: Perform operations on multiple conversations at once
+- **Thread Support**: Parent-child relationships for conversation threads
+- **Search**: Full-text search across conversations
+- **Import/Export**: Save and restore conversations
+
 ## Core Philosophies
 
-1. **Privacy-First**: Your data and conversations remain secure. The extension prioritizes user privacy in all interactions.
+1. **Privacy-First**: Your data and conversations remain secure. All data is stored locally in IndexedDB.
 
 2. **Seamless Integration**: Designed to work naturally within your browser workflow without disrupting your browsing experience.
 
@@ -18,9 +36,11 @@ BetterGPT is a Chrome extension designed to provide an intelligent, context-awar
 
 ## Technology Stack
 
-- **Framework**: Svelte with TypeScript
+- **Framework**: TypeScript with modern ES2020+ features
 - **Platform**: Chrome Extension (Manifest V3)
-- **Build System**: Modern bundler configuration for optimal performance
+- **Database**: DexieJS (IndexedDB wrapper)
+- **Build System**: esbuild for fast compilation and bundling
+- **Architecture**: Modular design with separation of concerns
 
 ## Project Structure
 
@@ -29,22 +49,104 @@ bettergpt/
 ├── src/
 │   ├── background/        # Background service worker
 │   ├── content/          # Content scripts and UI components
-│   └── ...
-├── manifest.json         # Chrome extension manifest (v3)
+│   │   ├── main.ts       # Entry point
+│   │   ├── types.ts      # Type definitions
+│   │   └── ui/           # UI components
+│   ├── data/            # Database layer (DexieJS)
+│   ├── integrations/    # ChatGPT integration modules
+│   │   └── chatgpt/
+│   │       ├── interceptor.ts   # API interception
+│   │       ├── dom-observer.ts  # DOM monitoring
+│   │       └── sidebar.ts       # Sidebar injection
+│   └── managers/        # Business logic managers
+│       ├── conversation-manager.ts
+│       └── folder-manager.ts
+├── manifest.json        # Chrome extension manifest (v3)
+├── build.js            # Build script
 └── README.md
 ```
 
-## Initial Goals
-
-- Set up a robust Chrome extension architecture with Manifest V3
-- Implement background service worker for managing extension lifecycle
-- Create content script infrastructure for page interaction
-- Develop UI components using Svelte for user interface
-- Establish TypeScript foundation for type-safe development
-
 ## Getting Started
 
-*Documentation for setup and development will be added as the project progresses.*
+### Prerequisites
+- Node.js 16+ and npm
+- Google Chrome browser
+
+### Installation & Development
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/vmanoilov/bettergpt.git
+   cd bettergpt
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Build the extension**
+   ```bash
+   npm run build
+   ```
+
+4. **Load in Chrome**
+   - Open Chrome and go to `chrome://extensions/`
+   - Enable "Developer mode" (top-right toggle)
+   - Click "Load unpacked"
+   - Select the `dist/` folder
+
+5. **Test it out**
+   - Open `test-page.html` for basic testing
+   - Visit https://chat.openai.com to test ChatGPT integration
+   - Press `Ctrl+Shift+A` to toggle the main UI
+   - Press `Ctrl+Shift+S` to toggle the ChatGPT sidebar
+
+### Development Workflow
+
+```bash
+# Build the extension
+npm run build
+
+# After making changes, rebuild and reload the extension in Chrome
+```
+
+For detailed development information, see [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## Usage
+
+### Keyboard Shortcuts
+- `Ctrl+Shift+A` - Toggle main BetterGPT UI
+- `Ctrl+Shift+S` - Toggle ChatGPT sidebar (when on ChatGPT)
+
+### Features
+1. **Automatic Conversation Capture**: Simply use ChatGPT normally, and BetterGPT will automatically save your conversations
+2. **Organize with Folders**: Create folders and organize your conversations
+3. **Search**: Quickly find conversations using full-text search
+4. **Archive & Favorite**: Keep your workspace clean by archiving old conversations or marking important ones as favorites
+5. **Bulk Operations**: Select multiple conversations for batch operations
+
+## Current Status
+
+### ✅ Phase 1 (Completed)
+- Basic Chrome extension structure
+- Service worker setup
+- Content script infrastructure
+- UI component framework
+
+### ✅ Phase 2 (Completed)
+- ChatGPT API integration
+- Conversation management
+- Folder organization
+- IndexedDB storage
+- Search functionality
+
+### 🚧 Phase 3 (Planned)
+- Advanced UI features
+- Settings page
+- Cross-device sync
+- Export/import improvements
+- Additional integrations
 
 ## License
 

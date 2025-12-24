@@ -4,16 +4,16 @@
 
 BetterGPT is a Chrome extension designed to provide an intelligent, context-aware AI assistant directly within your browser. Built with modern web technologies, it aims to enhance your browsing experience with seamless AI interactions.
 
-## ✨ Phase 2 Features (Current)
+## ✨ Current Features
 
-### ChatGPT Integration
+### ChatGPT Integration (Phase 2)
 - **API Interception**: Automatically captures ChatGPT conversations in real-time
 - **DOM Monitoring**: Tracks conversation changes and updates
 - **Sidebar UI**: Injected sidebar in ChatGPT for quick access to saved conversations
 - **Streaming Support**: Handles both regular and streaming API responses
 - **Metadata Extraction**: Captures model info, token usage, and conversation metadata
 
-### Conversation Management
+### Conversation Management (Phase 2)
 - **Auto-Save**: Conversations are automatically saved to IndexedDB
 - **Folder Organization**: Create folders to organize conversations
 - **Archive/Favorite**: Mark conversations as archived or favorite
@@ -21,6 +21,14 @@ BetterGPT is a Chrome extension designed to provide an intelligent, context-awar
 - **Thread Support**: Parent-child relationships for conversation threads
 - **Search**: Full-text search across conversations
 - **Import/Export**: Save and restore conversations
+
+### Conversation Threading & Context (Phase 3) ✨ NEW
+- **Conversation Linking**: Fork conversations at any message, continue from existing conversations, or create reference links
+- **Graph Visualization**: Interactive D3.js-powered visualization of conversation relationships with zoom, pan, and drag
+- **Smart Context Management**: Auto-load context from linked conversations with configurable settings
+- **Token Counting**: Visual token usage indicators with model-specific limits
+- **Context Truncation**: Three intelligent strategies (Recent, Relevant, Balanced) to fit context within token limits
+- **Multiple Views**: Switch between List, Graph, and Context views for different workflows
 
 ## Core Philosophies
 
@@ -141,12 +149,20 @@ For detailed development information, see [DEVELOPMENT.md](DEVELOPMENT.md).
 - IndexedDB storage
 - Search functionality
 
-### 🚧 Phase 3 (Planned)
-- Advanced UI features
-- Settings page
-- Cross-device sync
-- Export/import improvements
-- Additional integrations
+### ✅ Phase 3 (Completed) ✨ NEW
+- Conversation linking (fork, continuation, reference)
+- Interactive graph visualization with D3.js
+- Smart context management and auto-loading
+- Token counting and usage visualization
+- Multiple truncation strategies
+- Three-view UI (List, Graph, Context)
+
+### 🚧 Phase 4 (Planned)
+- Settings page and customization
+- Cross-device sync (optional)
+- Export improvements (Markdown, PDF, HTML)
+- Additional AI platform integrations
+- Themes and UI customization
 
 ## License
 

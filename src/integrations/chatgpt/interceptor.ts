@@ -122,8 +122,20 @@ export class ChatGPTInterceptor {
    */
   private isChatGPTApiUrl(url: string | Request | URL): boolean {
     const urlString = url.toString();
-    return urlString.includes('api.openai.com') || 
-           urlString.includes('chat.openai.com/backend-api');
+    try {
+      const urlObject = new URL(urlString);
+      const hostname = urlObject.hostname;
+      
+      // Check for exact match or subdomain
+      return hostname === 'api.openai.com' ||
+             hostname.endsWith('.api.openai.com') ||
+             hostname === 'chat.openai.com' ||
+             hostname.endsWith('.chat.openai.com') ||
+             (urlObject.pathname && urlObject.pathname.includes('/backend-api'));
+    } catch (error) {
+      // Invalid URL
+      return false;
+    }
   }
 
   /**

@@ -42,8 +42,11 @@ export class ChatGPTSidebarInjector {
    * Check if current page is ChatGPT
    */
   private isChatGPTPage(): boolean {
-    return window.location.hostname.includes('chat.openai.com') ||
-           window.location.hostname.includes('chatgpt.com');
+    const hostname = window.location.hostname;
+    return hostname === 'chat.openai.com' || 
+           hostname === 'chatgpt.com' ||
+           hostname.endsWith('.chat.openai.com') ||
+           hostname.endsWith('.chatgpt.com');
   }
 
   /**

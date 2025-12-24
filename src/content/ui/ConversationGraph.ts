@@ -12,7 +12,7 @@
  */
 
 import * as d3 from 'd3';
-import type { Conversation, ConversationLink } from '../../content/types';
+import type { Conversation, ConversationLink } from '../types';
 import type { ConversationGraph } from '../../managers/conversation-link-manager';
 
 interface GraphNode extends d3.SimulationNodeDatum {

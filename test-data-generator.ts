@@ -7,19 +7,34 @@
  * - Graph visualization
  * - Context management
  * 
- * Run this in the browser console to populate test data.
+ * To use:
+ * 1. Load the extension in Chrome
+ * 2. Open the browser console on any page
+ * 3. Copy and paste the code from this file
+ * 4. Call the generateTestData() function
+ * 
+ * Note: This file is for reference only. The imports below are示意性的 and won't work
+ * directly. You'll need to access the modules through the extension context.
  */
 
-// Import required modules (assumes they're accessible in the extension context)
-import { db } from './src/data/database';
-import { conversationLinkManager } from './src/managers/conversation-link-manager';
-import type { Conversation, ConversationMessage } from './src/content/types';
+// The following code should be adapted to work in the browser console context
+// where the extension's modules are already loaded
 
 async function generateTestData() {
   console.log('[TestDataGenerator] Starting...');
 
+  // Access the database through the extension's global context
+  // In practice, you would access this via chrome.runtime or the extension's exported API
+  const db = window.db; // Placeholder - adjust based on actual extension architecture
+  const conversationLinkManager = window.conversationLinkManager; // Placeholder
+
+  if (!db || !conversationLinkManager) {
+    console.error('[TestDataGenerator] Extension modules not accessible. Make sure extension is loaded.');
+    return;
+  }
+
   // Helper to create a message
-  function createMessage(id: string, role: 'user' | 'assistant', content: string, timestamp: number): ConversationMessage {
+  function createMessage(id: string, role: 'user' | 'assistant', content: string, timestamp: number) {
     return {
       id,
       role,
@@ -29,7 +44,7 @@ async function generateTestData() {
   }
 
   // Helper to create a conversation
-  function createConversation(id: string, title: string, model: string, messages: ConversationMessage[]): Conversation {
+  function createConversation(id: string, title: string, model: string, messages: any[]) {
     return {
       id,
       title,

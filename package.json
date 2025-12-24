@@ -1,0 +1,25 @@
+{
+  "name": "bettergpt",
+  "version": "0.1.0",
+  "description": "A Chrome extension providing an intelligent, context-aware AI assistant",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Build script to be configured with bundler'",
+    "dev": "echo 'Development script to be configured with bundler'",
+    "lint": "echo 'Linting to be configured'",
+    "test": "echo 'Testing to be configured'"
+  },
+  "keywords": [
+    "chrome-extension",
+    "ai",
+    "assistant",
+    "gpt",
+    "svelte"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chrome": "^0.0.254",
+    "typescript": "^5.3.0"
+  }
+}

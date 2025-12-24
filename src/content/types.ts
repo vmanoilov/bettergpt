@@ -103,3 +103,97 @@ export interface AIResponse {
   result?: string;
   error?: string;
 }
+
+/**
+ * Conversation-related types for Phase 2
+ */
+
+/**
+ * Message in a conversation
+ */
+export interface ConversationMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+  attachments?: MessageAttachment[];
+  streaming?: boolean;
+  tokens?: number;
+}
+
+/**
+ * Message attachment
+ */
+export interface MessageAttachment {
+  id: string;
+  type: 'image' | 'file' | 'code';
+  name: string;
+  url?: string;
+  content?: string;
+  mimeType?: string;
+}
+
+/**
+ * Conversation metadata
+ */
+export interface Conversation {
+  id: string;
+  title: string;
+  model: string;
+  createdAt: number;
+  updatedAt: number;
+  messages: ConversationMessage[];
+  folderId?: string;
+  parentId?: string; // For thread relationships
+  isArchived: boolean;
+  isFavorite: boolean;
+  totalTokens?: number;
+  tags?: string[];
+}
+
+/**
+ * Folder for organizing conversations
+ */
+export interface Folder {
+  id: string;
+  name: string;
+  parentId?: string; // For nested folders
+  createdAt: number;
+  updatedAt: number;
+  color?: string;
+  icon?: string;
+}
+
+/**
+ * ChatGPT API request/response types
+ */
+export interface ChatGPTRequest {
+  model: string;
+  messages: Array<{
+    role: string;
+    content: string;
+  }>;
+  stream?: boolean;
+  temperature?: number;
+  max_tokens?: number;
+}
+
+export interface ChatGPTResponse {
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  choices: Array<{
+    index: number;
+    message: {
+      role: string;
+      content: string;
+    };
+    finish_reason: string;
+  }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}

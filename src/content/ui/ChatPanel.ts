@@ -87,7 +87,9 @@ export class ChatPanel {
       padding: 4px 8px;
     `;
     closeButton.onclick = () => {
-      chrome.runtime.sendMessage({ type: 'TOGGLE_UI' });
+      chrome.runtime.sendMessage({ type: 'TOGGLE_UI' }).catch((error) => {
+        console.error('[ChatPanel] Failed to toggle UI:', error);
+      });
     };
 
     header.appendChild(title);
@@ -168,9 +170,17 @@ export class ChatPanel {
       font-size: 14px;
       font-weight: 500;
     `;
-    sendButton.onclick = () => {
-      this.handleSendMessage(input.value);
-      input.value = '';
+    sendButton.onclick = async () => {
+      const message = input.value;
+      if (message.trim()) {
+        try {
+          await this.handleSendMessage(message);
+          input.value = '';
+        } catch (error) {
+          console.error('[ChatPanel] Failed to send message:', error);
+          // Keep the input value so user can retry
+        }
+      }
     };
 
     inputContainer.appendChild(input);

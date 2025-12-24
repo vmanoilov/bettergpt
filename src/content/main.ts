@@ -44,6 +44,10 @@ async function initialize(): Promise<void> {
     }
   } catch (error) {
     console.error('[BetterGPT Content] Initialization error:', error);
+    // If background script is not available, we may be in an invalid state
+    if (error instanceof Error && error.message.includes('Extension context invalidated')) {
+      console.warn('[BetterGPT Content] Extension context invalidated, may need reload');
+    }
   }
 }
 

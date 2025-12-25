@@ -135,7 +135,7 @@ export class ExportManager {
     
     // Track export in history
     this.addToExportHistory({
-      id: `export_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `export_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       conversationId,
       format: options.format,
       timestamp: Date.now(),
@@ -399,11 +399,17 @@ export class ExportManager {
    * Generate a filename for the export
    */
   private generateFileName(conversation: Conversation, format: ExportFormat): string {
-    const sanitizedTitle = conversation.title
+    let sanitizedTitle = conversation.title
       .replace(/[^a-z0-9]/gi, '_')
       .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
       .toLowerCase()
       .substring(0, 50);
+    
+    // Ensure we have a valid filename
+    if (!sanitizedTitle || sanitizedTitle.length === 0) {
+      sanitizedTitle = 'conversation';
+    }
     
     const timestamp = new Date().toISOString().split('T')[0];
     const extension = this.getFileExtension(format);
@@ -458,24 +464,37 @@ export class ExportManager {
     try {
       // Use Chrome downloads API if available
       if (chrome?.downloads) {
-        await chrome.downloads.download({
-          url: url,
-          filename: fileName,
-          saveAs: true
-        });
+        try {
+          await chrome.downloads.download({
+            url: url,
+            filename: fileName,
+            saveAs: true
+          });
+        } catch (downloadError) {
+          console.error('[ExportManager] Chrome downloads API failed:', downloadError);
+          // Fall back to DOM method if downloads API fails
+          this.downloadViaDomLink(url, fileName);
+        }
       } else {
         // Fallback to creating a download link
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        this.downloadViaDomLink(url, fileName);
       }
     } finally {
       // Clean up the blob URL after a delay
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
+  }
+
+  /**
+   * Download file using DOM link element (fallback method)
+   */
+  private downloadViaDomLink(url: string, fileName: string): void {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   }
 
   /**

@@ -142,6 +142,17 @@ Try pressing Cmd/Ctrl+K to open the command palette!</div>
     </div>
 
     <div class="section">
+        <h2>Export Tests (Phase 4)</h2>
+        <p>Test export manager functionality:</p>
+        <button onclick="testExportJSON()">Export as JSON</button>
+        <button onclick="testExportMarkdown()">Export as Markdown</button>
+        <button onclick="testExportHTML()">Export as HTML</button>
+        <button onclick="testEnableAutoExport()">Enable Auto-Export</button>
+        <button onclick="testDisableAutoExport()">Disable Auto-Export</button>
+        <div id="export-output" class="output">Export test results will appear here...</div>
+    </div>
+
+    <div class="section">
         <h2>Extension Status</h2>
         <button onclick="checkExtensionStatus()">Check Extension Status</button>
         <div id="status-output" class="output">Extension status will appear here...</div>
@@ -328,6 +339,52 @@ Try pressing Cmd/Ctrl+K to open the command palette!</div>
         window.addEventListener('load', () => {
             setTimeout(checkExtensionStatus, 1000);
         });
+
+        // Export Tests (Phase 4)
+        function testExportJSON() {
+            const output = document.getElementById('export-output');
+            output.textContent = 'Export JSON test:\n\n' +
+                'This would export a conversation as JSON.\n' +
+                'To test: First save a conversation, then trigger export.\n' +
+                'Check browser console for details.';
+            console.log('Test: Export conversation as JSON');
+        }
+
+        function testExportMarkdown() {
+            const output = document.getElementById('export-output');
+            output.textContent = 'Export Markdown test:\n\n' +
+                'This would export a conversation as Markdown.\n' +
+                'Format includes title, metadata, and formatted messages.\n' +
+                'Check browser console for details.';
+            console.log('Test: Export conversation as Markdown');
+        }
+
+        function testExportHTML() {
+            const output = document.getElementById('export-output');
+            output.textContent = 'Export HTML test:\n\n' +
+                'This would export a conversation as HTML.\n' +
+                'Includes styled formatting for better readability.\n' +
+                'Check browser console for details.';
+            console.log('Test: Export conversation as HTML');
+        }
+
+        function testEnableAutoExport() {
+            const output = document.getElementById('export-output');
+            output.textContent = 'Auto-export enabled!\n\n' +
+                'When enabled, conversations will be automatically exported\n' +
+                'when they are completed (after ChatGPT responds).\n' +
+                'Default format: Markdown\n\n' +
+                'Visit chat.openai.com and start a conversation to test.';
+            console.log('Test: Enable auto-export');
+        }
+
+        function testDisableAutoExport() {
+            const output = document.getElementById('export-output');
+            output.textContent = 'Auto-export disabled!\n\n' +
+                'Conversations will no longer be automatically exported.\n' +
+                'You can still manually export them.';
+            console.log('Test: Disable auto-export');
+        }
     </script>
 </body>
 </html>

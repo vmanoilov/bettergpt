@@ -16,6 +16,7 @@ import type {
   MessageAttachment 
 } from '../../content/types';
 import { db } from '../../data/database';
+import { exportManager } from '../../managers/export-manager';
 
 export class ChatGPTInterceptor {
   private isInitialized = false;
@@ -293,6 +294,9 @@ export class ChatGPTInterceptor {
 
     await db.saveConversation(conversation);
     console.log('[ChatGPTInterceptor] Conversation saved:', conversationId);
+    
+    // Trigger export manager on completion
+    await exportManager.onConversationCompleted(conversationId);
   }
 
   /**
@@ -344,6 +348,9 @@ export class ChatGPTInterceptor {
 
     await db.saveConversation(conversation);
     console.log('[ChatGPTInterceptor] Streamed conversation saved');
+    
+    // Trigger export manager on completion
+    await exportManager.onConversationCompleted(conversationId);
   }
 
   /**

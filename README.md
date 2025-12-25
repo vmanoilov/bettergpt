@@ -4,7 +4,46 @@
 
 BetterGPT is a Chrome extension designed to provide an intelligent, context-aware AI assistant directly within your browser. Built with modern web technologies, it aims to enhance your browsing experience with seamless AI interactions.
 
-## ✨ Phase 2 Features (Current)
+## ✨ Phase 5 Features (Current - UI & UX Polish)
+
+### Command Palette
+- **Universal Command Interface**: Press `Cmd/Ctrl+K` to access all extension features
+- **Fuzzy Search**: Quickly find commands by typing any part of their name
+- **Categorized Actions**: Commands organized by category (Conversation, Navigation, Search, Settings, Data)
+- **Recent Items**: Previously used commands appear at the top for quick access
+- **Keyboard Navigation**: Full keyboard support with arrow keys and Enter
+
+### Enhanced Keyboard Shortcuts
+- **Centralized Management**: All shortcuts managed through a unified system
+- **Platform-Aware**: Automatically uses Cmd on Mac, Ctrl on Windows/Linux
+- **Priority System**: Prevents conflicts with proper priority handling
+- **Context-Aware**: Shortcuts disabled when typing in input fields (except Cmd/Ctrl+K)
+
+**Default Shortcuts:**
+- `Cmd/Ctrl+K` - Open Command Palette
+- `Ctrl+Shift+A` - Toggle Main UI
+- `Ctrl+Shift+S` - Toggle ChatGPT Sidebar
+
+### Theme Support
+- **Light & Dark Modes**: Fully implemented theme system
+- **System Preference Detection**: Automatically follows OS theme preference
+- **Persistent Settings**: Theme choice saved and restored across sessions
+- **CSS Variables**: All colors use CSS custom properties for easy theming
+- **Theme Toggle**: Quick theme switching via UI button or command palette
+
+### Performance Optimizations
+- **Virtual Scrolling**: Efficient rendering for large lists (only visible items rendered)
+- **Database Caching**: Query results cached with automatic invalidation
+- **Batch Operations**: Multiple database operations executed efficiently
+- **Throttling & Debouncing**: Event handlers optimized for performance
+- **Pagination Support**: Load data in chunks for better performance
+
+### Developer Features
+- **Memoization**: Cache expensive function results
+- **Batch Scheduler**: Group multiple updates into single animation frame
+- **Performance Utilities**: Throttle, debounce, and timing helpers
+
+## ✨ Phase 2 Features (Completed)
 
 ### ChatGPT Integration
 - **API Interception**: Automatically captures ChatGPT conversations in real-time
@@ -140,8 +179,34 @@ For detailed development information, see [DEVELOPMENT.md](DEVELOPMENT.md).
 ## Usage
 
 ### Keyboard Shortcuts
+- `Cmd/Ctrl+K` - Open Command Palette
 - `Ctrl+Shift+A` - Toggle main BetterGPT UI
 - `Ctrl+Shift+S` - Toggle ChatGPT sidebar (when on ChatGPT)
+
+### Command Palette
+The command palette provides quick access to all extension features:
+1. Press `Cmd/Ctrl+K` to open
+2. Type to search for commands
+3. Use arrow keys to navigate
+4. Press Enter to execute
+
+Available commands include:
+- New Conversation
+- Search Conversations
+- Archive/Favorite conversations
+- Toggle Theme
+- Export/Import data
+- And more...
+
+### Theme Support
+BetterGPT supports three theme modes:
+- **Light**: Always use light theme
+- **Dark**: Always use dark theme  
+- **System**: Automatically follow OS preference (default)
+
+Change theme via:
+- Command Palette (`Cmd/Ctrl+K` → "Toggle Theme")
+- Theme toggle button in UI header (sun/moon icon)
 
 ### Features
 1. **Automatic Conversation Capture**: Simply use ChatGPT normally, and BetterGPT will automatically save your conversations
@@ -165,6 +230,15 @@ For detailed development information, see [DEVELOPMENT.md](DEVELOPMENT.md).
 - IndexedDB storage
 - Search functionality
 
+### ✅ Phase 5 (Completed - UI & UX Polish)
+- Command palette with keyboard shortcuts
+- Theme manager (Light/Dark/System)
+- Virtual scroll for large lists
+- Performance optimizations (caching, throttling, batch operations)
+- Enhanced keyboard shortcut system
+- CSS variable-based theming
+
+### 🚧 Phase 6 (Planned)
 ### ✅ Phase 4 (Completed)
 - Export System with multiple formats (Markdown, JSON, HTML, PDF, TXT, DOCX)
 - Custom templates (Standard, Obsidian, GitHub, Academic, Minimal)

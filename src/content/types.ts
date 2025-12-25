@@ -7,7 +7,7 @@
  */
 export interface ExtensionConfig {
   enabled: boolean;
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'system';
   shortcuts: {
     toggleUI: string;
   };

@@ -708,7 +708,14 @@ export class ExportManager {
 
   /**
    * Export as DOCX (RTF format for Word compatibility)
-   * Generates RTF format which can be opened in Microsoft Word and other word processors
+   * 
+   * Note: We generate RTF (Rich Text Format) instead of native DOCX because:
+   * 1. RTF is fully browser-compatible and doesn't require Node.js dependencies
+   * 2. RTF files can be opened in Microsoft Word, LibreOffice, and other word processors
+   * 3. RTF provides good formatting support (fonts, colors, paragraphs)
+   * 4. Avoids the complexity and size of native DOCX generation libraries
+   * 
+   * Users can open the .rtf file in Word and save as .docx if needed.
    */
   private async exportAsDOCX(
     conversations: Conversation[],
@@ -893,13 +900,22 @@ export class ExportManager {
    */
   private async recordExportHistory(record: Partial<ExportHistoryRecord>): Promise<void> {
     try {
+      // Generate a more robust unique ID combining timestamp and crypto random
+      const timestamp = Date.now();
+      const randomPart = typeof crypto !== 'undefined' && crypto.getRandomValues
+        ? Array.from(crypto.getRandomValues(new Uint8Array(8)))
+            .map(b => b.toString(36))
+            .join('')
+            .substring(0, 11)
+        : Math.random().toString(36).substring(2, 13);
+      
       const historyRecord: ExportHistoryRecord = {
-        id: `export_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        id: `export_${timestamp}_${randomPart}`,
         conversationId: record.conversationId || '',
         conversationIds: record.conversationIds,
         format: record.format!,
         filename: record.filename!,
-        timestamp: Date.now(),
+        timestamp,
         success: record.success || false,
         error: record.error,
       };

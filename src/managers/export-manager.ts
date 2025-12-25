@@ -15,6 +15,10 @@
 import type { Conversation } from '../content/types';
 import { db } from '../data/database';
 
+// Constants
+const MAX_FILENAME_LENGTH = 50;
+const URL_CLEANUP_DELAY_MS = 100;
+
 export type ExportFormat = 'markdown' | 'txt' | 'json' | 'html' | 'pdf' | 'docx';
 export type MarkdownTemplate = 'standard' | 'obsidian' | 'github';
 export type PDFTemplate = 'minimal' | 'academic' | 'dark';
@@ -559,7 +563,7 @@ export class ExportManager {
       const title = conversations[0].title
         .replace(/[^a-z0-9]/gi, '_')
         .toLowerCase()
-        .slice(0, 50);
+        .slice(0, MAX_FILENAME_LENGTH);
       return `${title}_${timestamp}.${extension}`;
     }
     
@@ -589,8 +593,8 @@ export class ExportManager {
     a.click();
     document.body.removeChild(a);
     
-    // Clean up
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    // Clean up URL after download completes
+    setTimeout(() => URL.revokeObjectURL(url), URL_CLEANUP_DELAY_MS);
   }
 }
 

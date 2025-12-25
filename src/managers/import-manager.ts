@@ -13,6 +13,9 @@
 import type { Conversation, ConversationMessage } from '../content/types';
 import { db } from '../data/database';
 
+// Constants
+const RANDOM_ID_LENGTH = 9;
+
 export type ImportFormat = 'json' | 'markdown' | 'chatgpt' | 'txt';
 
 export interface ImportOptions {
@@ -260,7 +263,7 @@ export class ImportManager {
     }
     
     return {
-      id: `conv_imported_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+      id: `conv_imported_${Date.now()}_${Math.random().toString(36).slice(2, 2 + RANDOM_ID_LENGTH)}`,
       title,
       model,
       createdAt,
@@ -379,7 +382,7 @@ export class ImportManager {
       }
       
       return {
-        id: data.id || `conv_imported_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+        id: data.id || `conv_imported_${Date.now()}_${Math.random().toString(36).slice(2, 2 + RANDOM_ID_LENGTH)}`,
         title: data.title || 'Imported from ChatGPT',
         model: data.model || 'gpt-3.5-turbo',
         createdAt: data.create_time 
@@ -479,7 +482,7 @@ export class ImportManager {
     }
     
     return {
-      id: `conv_imported_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+      id: `conv_imported_${Date.now()}_${Math.random().toString(36).slice(2, 2 + RANDOM_ID_LENGTH)}`,
       title,
       model: 'unknown',
       createdAt: Date.now(),
@@ -526,7 +529,7 @@ export class ImportManager {
         valid.push({
           ...conv,
           messages: validMessages.map((msg: any) => ({
-            id: msg.id || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+            id: msg.id || `msg_${Date.now()}_${Math.random().toString(36).slice(2, 2 + RANDOM_ID_LENGTH)}`,
             role: msg.role,
             content: msg.content,
             timestamp: msg.timestamp || Date.now(),
@@ -559,7 +562,7 @@ export class ImportManager {
       
       // Generate new IDs if requested
       if (options.generateNewIds) {
-        processed.id = `conv_imported_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+        processed.id = `conv_imported_${Date.now()}_${Math.random().toString(36).slice(2, 2 + RANDOM_ID_LENGTH)}`;
         processed.messages = processed.messages.map((msg, idx) => ({
           ...msg,
           id: `msg_${Date.now()}_${idx}`,

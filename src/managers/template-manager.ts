@@ -311,6 +311,7 @@ ${'='.repeat(50)}
   private processInlineHelpers(template: string, data: any): string {
     // Process {{#if (eq a b)}}text{{else}}other{{/if}}
     const eqIfRegex = /{{#if \(eq (\w+) "([^"]*)"\)}}([^{]*){{else}}([^{]*){{\/if}}/g;
+    // Regex capture groups: 1=key name, 2=comparison value, 3=true text, 4=false text
     
     return template.replace(eqIfRegex, (match, key, value, trueText, falseText) => {
       return data[key] === value ? trueText : falseText;

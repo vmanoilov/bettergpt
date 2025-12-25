@@ -377,7 +377,9 @@ Icon: 64x64 or 128x128 PNG
 - **Support/FAQ**: https://github.com/vmanoilov/bettergpt/blob/main/SUPPORT.md
 - **Privacy Policy**: https://github.com/vmanoilov/bettergpt/blob/main/PRIVACY_POLICY.md
 - **Report Issue**: https://github.com/vmanoilov/bettergpt/issues
-- **Contact**: [Email to be provided]
+- **Contact**: support@bettergpt.dev (or use repository owner's email)
+
+> **Note**: Update contact email before store submission
 
 ## Translation Preparation
 

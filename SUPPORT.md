@@ -268,9 +268,7 @@ A: Yes! Feature requests are welcome on our GitHub Issues page. Label them as "e
 **Q: Is there a mobile version?**  
 A: Not currently. BetterGPT is a browser extension for desktop browsers.
 
-## Contact & Support
-
-### Report Issues
+## Contact
 
 - **GitHub Issues**: [https://github.com/vmanoilov/bettergpt/issues](https://github.com/vmanoilov/bettergpt/issues)
 - **Bug Reports**: Use the "bug" label
@@ -284,7 +282,9 @@ A: Not currently. BetterGPT is a browser extension for desktop browsers.
 ### Email Support
 
 For privacy concerns or sensitive issues:
-- Email: [To be provided]
+- Email: support@bettergpt.dev (or use repository owner's email)
+
+> **Note**: Update this email address before store submission
 
 ### Documentation
 

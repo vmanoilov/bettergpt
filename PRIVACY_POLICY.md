@@ -154,7 +154,9 @@ BetterGPT is open source. You can:
 If you have questions about this privacy policy or BetterGPT's data practices:
 
 - **GitHub Issues**: https://github.com/vmanoilov/bettergpt/issues
-- **Email**: [To be provided]
+- **Email**: support@bettergpt.dev (or use repository owner's email)
+
+> **Note**: Update this email address before store submission
 
 ## Compliance
 

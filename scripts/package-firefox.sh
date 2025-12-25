@@ -1,6 +1,9 @@
 #!/bin/bash
 # Package BetterGPT for Firefox Add-ons
 # This script builds the extension with Firefox-specific manifest and creates a zip package
+#
+# NOTE: Before first submission, update the extension ID in manifest.firefox.json
+#       (browser_specific_settings.gecko.id) to match your developer account
 
 set -e  # Exit on error
 
@@ -30,13 +33,13 @@ rm -f bettergpt-firefox-*.zip
 # Build the extension
 echo "🔨 Building extension..."
 npm run build
-
 BUILD_STATUS=$?
 
 # Restore Chrome manifest
 echo "🔄 Restoring Chrome manifest..."
 mv manifest.chrome.json.bak manifest.json
 
+# Check build status after restoring manifest
 if [ $BUILD_STATUS -ne 0 ]; then
   echo "❌ Build failed!"
   exit 1

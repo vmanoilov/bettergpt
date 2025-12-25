@@ -5,8 +5,8 @@
  * into the BetterGPT UI components.
  */
 
-import { exportImportService } from '../managers/export-import-service';
-import type { ExportFormat, ImportFormat } from '../managers/export-import-service';
+import { exportImportService } from '../../managers/export-import-service';
+import type { ExportFormat, ImportFormat } from '../../managers/export-import-service';
 
 /**
  * Example: Export button handler for a conversation

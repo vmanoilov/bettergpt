@@ -357,8 +357,8 @@ ${'='.repeat(50)}
     const errors: string[] = [];
 
     // Check for unclosed tags
-    const openTags = (template.match(/{{#/g) || []).length;
-    const closeTags = (template.match(/{{\/}/g) || []).length;
+    const openTags = (template.match(/{{#\w+/g) || []).length;
+    const closeTags = (template.match(/{{\/\w+}}/g) || []).length;
     
     if (openTags !== closeTags) {
       errors.push('Unclosed template tags detected');

@@ -6,10 +6,65 @@
  * - Conversation storage and retrieval
  * - Folder management
  * - Efficient querying with indexes
+ * - Caching for improved performance
+ * - Batch operations
  */
 
 import Dexie, { Table } from 'dexie';
 import type { Conversation, Folder } from '../content/types';
+import { memoize } from '../utils/performance';
+
+/**
+ * Cache for frequently accessed data
+ */
+class DatabaseCache {
+  private conversationCache: Map<string, { data: Conversation; timestamp: number }> = new Map();
+  private folderCache: Map<string, { data: Folder; timestamp: number }> = new Map();
+  private queryCache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cacheTTL = 60000; // 1 minute TTL
+
+  set(key: string, data: any, type: 'conversation' | 'folder' | 'query'): void {
+    const cache = type === 'conversation' ? this.conversationCache :
+                  type === 'folder' ? this.folderCache : this.queryCache;
+    cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  get(key: string, type: 'conversation' | 'folder' | 'query'): any | null {
+    const cache = type === 'conversation' ? this.conversationCache :
+                  type === 'folder' ? this.folderCache : this.queryCache;
+    const entry = cache.get(key);
+    
+    if (!entry) return null;
+    
+    // Check if cache is still valid
+    if (Date.now() - entry.timestamp > this.cacheTTL) {
+      cache.delete(key);
+      return null;
+    }
+    
+    return entry.data;
+  }
+
+  invalidate(key: string, type: 'conversation' | 'folder' | 'query'): void {
+    const cache = type === 'conversation' ? this.conversationCache :
+                  type === 'folder' ? this.folderCache : this.queryCache;
+    cache.delete(key);
+  }
+
+  invalidateAll(type?: 'conversation' | 'folder' | 'query'): void {
+    if (!type) {
+      this.conversationCache.clear();
+      this.folderCache.clear();
+      this.queryCache.clear();
+    } else if (type === 'conversation') {
+      this.conversationCache.clear();
+    } else if (type === 'folder') {
+      this.folderCache.clear();
+    } else {
+      this.queryCache.clear();
+    }
+  }
+}
 
 /**
  * BetterGPT Database class
@@ -18,6 +73,9 @@ export class BetterGPTDatabase extends Dexie {
   // Tables
   conversations!: Table<Conversation, string>;
   folders!: Table<Folder, string>;
+  
+  // Cache
+  private cache = new DatabaseCache();
 
   constructor() {
     super('BetterGPTDB');
@@ -30,123 +88,248 @@ export class BetterGPTDatabase extends Dexie {
   }
 
   /**
-   * Save a conversation
+   * Save a conversation (with cache invalidation)
    */
   async saveConversation(conversation: Conversation): Promise<void> {
     await this.conversations.put(conversation);
+    this.cache.invalidate(conversation.id, 'conversation');
+    this.cache.invalidateAll('query');
   }
 
   /**
-   * Get a conversation by ID
+   * Save multiple conversations in batch
+   */
+  async saveConversationsBatch(conversations: Conversation[]): Promise<void> {
+    await this.conversations.bulkPut(conversations);
+    conversations.forEach(conv => this.cache.invalidate(conv.id, 'conversation'));
+    this.cache.invalidateAll('query');
+  }
+
+  /**
+   * Get a conversation by ID (with caching)
    */
   async getConversation(id: string): Promise<Conversation | undefined> {
-    return await this.conversations.get(id);
+    const cached = this.cache.get(id, 'conversation');
+    if (cached) {
+      return cached;
+    }
+    
+    const conversation = await this.conversations.get(id);
+    if (conversation) {
+      this.cache.set(id, conversation, 'conversation');
+    }
+    
+    return conversation;
   }
 
   /**
-   * Get all conversations
+   * Get all conversations (with pagination support)
    */
-  async getAllConversations(): Promise<Conversation[]> {
-    return await this.conversations.toArray();
+  async getAllConversations(limit?: number, offset?: number): Promise<Conversation[]> {
+    const query = this.conversations.orderBy('updatedAt').reverse();
+    
+    if (limit !== undefined) {
+      if (offset) {
+        return await query.offset(offset).limit(limit).toArray();
+      }
+      return await query.limit(limit).toArray();
+    }
+    
+    return await query.toArray();
   }
 
   /**
-   * Get conversations in a folder
+   * Get conversations count
    */
-  async getConversationsByFolder(folderId: string): Promise<Conversation[]> {
-    return await this.conversations
+  async getConversationsCount(): Promise<number> {
+    return await this.conversations.count();
+  }
+
+  /**
+   * Get conversations in a folder (with caching)
+   */
+  async getConversationsByFolder(folderId: string, limit?: number): Promise<Conversation[]> {
+    const cacheKey = `folder:${folderId}:${limit || 'all'}`;
+    const cached = this.cache.get(cacheKey, 'query');
+    if (cached) {
+      return cached;
+    }
+    
+    let query = this.conversations
       .where('folderId')
       .equals(folderId)
-      .toArray();
+      .reverse();
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const results = await query.toArray();
+    this.cache.set(cacheKey, results, 'query');
+    
+    return results;
   }
 
   /**
-   * Get favorite conversations
+   * Get favorite conversations (with caching)
    */
-  async getFavoriteConversations(): Promise<Conversation[]> {
-    return await this.conversations
+  async getFavoriteConversations(limit?: number): Promise<Conversation[]> {
+    const cacheKey = `favorites:${limit || 'all'}`;
+    const cached = this.cache.get(cacheKey, 'query');
+    if (cached) {
+      return cached;
+    }
+    
+    let query = this.conversations
       .where('isFavorite')
       .equals(true)
-      .toArray();
+      .reverse();
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const results = await query.toArray();
+    this.cache.set(cacheKey, results, 'query');
+    
+    return results;
   }
 
   /**
-   * Get archived conversations
+   * Get archived conversations (with caching)
    */
-  async getArchivedConversations(): Promise<Conversation[]> {
-    return await this.conversations
+  async getArchivedConversations(limit?: number): Promise<Conversation[]> {
+    const cacheKey = `archived:${limit || 'all'}`;
+    const cached = this.cache.get(cacheKey, 'query');
+    if (cached) {
+      return cached;
+    }
+    
+    let query = this.conversations
       .where('isArchived')
       .equals(true)
-      .toArray();
+      .reverse();
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const results = await query.toArray();
+    this.cache.set(cacheKey, results, 'query');
+    
+    return results;
   }
 
   /**
-   * Get non-archived conversations
+   * Get non-archived conversations (with caching)
    */
-  async getActiveConversations(): Promise<Conversation[]> {
-    return await this.conversations
+  async getActiveConversations(limit?: number): Promise<Conversation[]> {
+    const cacheKey = `active:${limit || 'all'}`;
+    const cached = this.cache.get(cacheKey, 'query');
+    if (cached) {
+      return cached;
+    }
+    
+    let query = this.conversations
       .where('isArchived')
       .equals(false)
-      .toArray();
+      .reverse();
+    
+    if (limit) {
+      query = query.limit(limit);
+    }
+    
+    const results = await query.toArray();
+    this.cache.set(cacheKey, results, 'query');
+    
+    return results;
   }
 
   /**
-   * Update conversation metadata
+   * Update conversation metadata (with cache invalidation)
    */
   async updateConversation(id: string, updates: Partial<Conversation>): Promise<void> {
     await this.conversations.update(id, {
       ...updates,
       updatedAt: Date.now()
     });
+    this.cache.invalidate(id, 'conversation');
+    this.cache.invalidateAll('query');
   }
 
   /**
-   * Delete a conversation
+   * Update multiple conversations in batch
+   */
+  async updateConversationsBatch(updates: Array<{ id: string; changes: Partial<Conversation> }>): Promise<void> {
+    await this.transaction('rw', this.conversations, async () => {
+      for (const { id, changes } of updates) {
+        await this.conversations.update(id, {
+          ...changes,
+          updatedAt: Date.now()
+        });
+      }
+    });
+    
+    updates.forEach(({ id }) => this.cache.invalidate(id, 'conversation'));
+    this.cache.invalidateAll('query');
+  }
+
+  /**
+   * Delete a conversation (with cache invalidation)
    */
   async deleteConversation(id: string): Promise<void> {
     await this.conversations.delete(id);
+    this.cache.invalidate(id, 'conversation');
+    this.cache.invalidateAll('query');
   }
 
   /**
-   * Delete multiple conversations
+   * Delete multiple conversations (optimized)
    */
   async deleteConversations(ids: string[]): Promise<void> {
     await this.conversations.bulkDelete(ids);
+    ids.forEach(id => this.cache.invalidate(id, 'conversation'));
+    this.cache.invalidateAll('query');
   }
 
   /**
-   * Archive/unarchive a conversation
+   * Archive/unarchive a conversation (with cache invalidation)
    */
   async setConversationArchived(id: string, isArchived: boolean): Promise<void> {
     await this.updateConversation(id, { isArchived });
   }
 
   /**
-   * Favorite/unfavorite a conversation
+   * Favorite/unfavorite a conversation (with cache invalidation)
    */
   async setConversationFavorite(id: string, isFavorite: boolean): Promise<void> {
     await this.updateConversation(id, { isFavorite });
   }
 
   /**
-   * Move conversation to a folder
+   * Move conversation to a folder (with cache invalidation)
    */
   async moveConversationToFolder(conversationId: string, folderId?: string): Promise<void> {
     await this.updateConversation(conversationId, { folderId });
   }
 
   /**
-   * Search conversations by title or content
-   * Note: For better performance with large datasets, consider implementing
-   * a more sophisticated search solution with pagination or indexing
+   * Search conversations by title or content (optimized with pagination)
    */
-  async searchConversations(query: string, limit: number = 100): Promise<Conversation[]> {
+  async searchConversations(query: string, limit: number = 50, offset: number = 0): Promise<Conversation[]> {
     if (!query || query.trim() === '') {
       return [];
     }
     
+    const cacheKey = `search:${query}:${limit}:${offset}`;
+    const cached = this.cache.get(cacheKey, 'query');
+    if (cached) {
+      return cached;
+    }
+    
     const lowerQuery = query.toLowerCase();
     const results: Conversation[] = [];
+    let skipped = 0;
     
     // Use efficient database cursor instead of loading all at once
     await this.conversations.each(conv => {
@@ -155,44 +338,67 @@ export class BetterGPTDatabase extends Dexie {
         return false; // Break the iteration
       }
       
-      // Search in title
-      if (conv.title.toLowerCase().includes(lowerQuery)) {
-        results.push(conv);
-        return;
-      }
-      
-      // Search in message content
-      const hasMatchingMessage = conv.messages.some(msg => 
+      // Check if matches
+      const titleMatch = conv.title.toLowerCase().includes(lowerQuery);
+      const messageMatch = conv.messages.some(msg => 
         msg.content.toLowerCase().includes(lowerQuery)
       );
       
-      if (hasMatchingMessage) {
+      if (titleMatch || messageMatch) {
+        // Skip results for pagination
+        if (skipped < offset) {
+          skipped++;
+          return;
+        }
+        
         results.push(conv);
       }
     });
     
+    this.cache.set(cacheKey, results, 'query');
     return results;
   }
 
   /**
-   * Save a folder
+   * Save a folder (with cache invalidation)
    */
   async saveFolder(folder: Folder): Promise<void> {
     await this.folders.put(folder);
+    this.cache.invalidate(folder.id, 'folder');
+    this.cache.invalidateAll('query');
   }
 
   /**
-   * Get a folder by ID
+   * Get a folder by ID (with caching)
    */
   async getFolder(id: string): Promise<Folder | undefined> {
-    return await this.folders.get(id);
+    const cached = this.cache.get(id, 'folder');
+    if (cached) {
+      return cached;
+    }
+    
+    const folder = await this.folders.get(id);
+    if (folder) {
+      this.cache.set(id, folder, 'folder');
+    }
+    
+    return folder;
   }
 
   /**
-   * Get all folders
+   * Get all folders (with caching)
    */
   async getAllFolders(): Promise<Folder[]> {
-    return await this.folders.toArray();
+    const cacheKey = 'all-folders';
+    const cached = this.cache.get(cacheKey, 'query');
+    if (cached) {
+      return cached;
+    }
+    
+    const results = await this.folders.toArray();
+    this.cache.set(cacheKey, results, 'query');
+    
+    return results;
   }
 
   /**
@@ -214,17 +420,19 @@ export class BetterGPTDatabase extends Dexie {
   }
 
   /**
-   * Update folder
+   * Update folder (with cache invalidation)
    */
   async updateFolder(id: string, updates: Partial<Folder>): Promise<void> {
     await this.folders.update(id, {
       ...updates,
       updatedAt: Date.now()
     });
+    this.cache.invalidate(id, 'folder');
+    this.cache.invalidateAll('query');
   }
 
   /**
-   * Delete a folder
+   * Delete a folder (with cache invalidation)
    */
   async deleteFolder(id: string): Promise<void> {
     // Move conversations in this folder to no folder
@@ -235,6 +443,15 @@ export class BetterGPTDatabase extends Dexie {
     
     // Delete the folder
     await this.folders.delete(id);
+    this.cache.invalidate(id, 'folder');
+    this.cache.invalidateAll('query');
+  }
+
+  /**
+   * Clear all caches
+   */
+  clearCache(): void {
+    this.cache.invalidateAll();
   }
 
   /**

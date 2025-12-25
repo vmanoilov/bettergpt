@@ -78,16 +78,45 @@
             <li>Enable "Developer mode"</li>
             <li>Click "Load unpacked" and select the <code>dist/</code> folder</li>
             <li>Reload this page</li>
-            <li>Press <span class="kbd">Ctrl+Shift+A</span> to toggle the BetterGPT UI</li>
+            <li>Try these keyboard shortcuts:
+                <ul>
+                    <li><span class="kbd">Ctrl+Shift+A</span> - Toggle main UI panel</li>
+                    <li><span class="kbd">Cmd/Ctrl+K</span> - Open command palette</li>
+                    <li><span class="kbd">Ctrl+Shift+S</span> - Toggle sidebar (on ChatGPT)</li>
+                </ul>
+            </li>
         </ol>
     </div>
 
     <div class="section">
-        <h2>UI Tests</h2>
-        <p>Test the extension UI and keyboard shortcuts:</p>
+        <h2>Phase 5 Features</h2>
+        <p>New features added in Phase 5:</p>
+        <ul>
+            <li><strong>Command Palette:</strong> Press <span class="kbd">Cmd/Ctrl+K</span> to access all commands</li>
+            <li><strong>Theme Support:</strong> Toggle between light/dark mode (check command palette or theme toggle button in UI)</li>
+            <li><strong>Keyboard Shortcuts:</strong> Centralized keyboard shortcut management</li>
+            <li><strong>Virtual Scroll:</strong> Efficient rendering for large lists</li>
+            <li><strong>Performance Optimizations:</strong> Database caching, throttling, and batch operations</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Keyboard Shortcuts Tests</h2>
+        <p>Test the new keyboard shortcut system:</p>
+        <button onclick="testCommandPalette()">Test Command Palette (Cmd/Ctrl+K)</button>
         <button onclick="testToggleUI()">Toggle UI (Ctrl+Shift+A)</button>
+        <button onclick="testTheme()">Test Theme Toggle</button>
+        <div id="shortcuts-output" class="output">Keyboard shortcuts test results will appear here...
+        
+Try pressing Cmd/Ctrl+K to open the command palette!</div>
+    </div>
+
+    <div class="section">
+        <h2>UI Tests</h2>
+        <p>Test the extension UI and features:</p>
         <button onclick="testShowUI()">Show UI</button>
         <button onclick="testHideUI()">Hide UI</button>
+        <button onclick="checkThemeStatus()">Check Current Theme</button>
         <div id="ui-output" class="output">UI test results will appear here...</div>
     </div>
 
@@ -119,22 +148,75 @@
     </div>
 
     <script>
+        // Keyboard Shortcuts Tests
+        function testCommandPalette() {
+            const output = document.getElementById('shortcuts-output');
+            output.textContent = 'Command Palette Test:\n\n' +
+                '1. Press Cmd/Ctrl+K to open the command palette\n' +
+                '2. Type to search for commands\n' +
+                '3. Use arrow keys to navigate\n' +
+                '4. Press Enter to execute a command\n' +
+                '5. Press Escape to close\n\n' +
+                'Available commands:\n' +
+                '- New Conversation\n' +
+                '- Toggle Sidebar\n' +
+                '- Search Conversations\n' +
+                '- Archive Current Conversation\n' +
+                '- Toggle Theme\n' +
+                '- Export/Import Conversations';
+        }
+
         // UI Tests
         function testToggleUI() {
             chrome.runtime.sendMessage({ type: 'TOGGLE_UI' }, (response) => {
-                document.getElementById('ui-output').textContent = 
-                    'Toggle UI response: ' + JSON.stringify(response, null, 2);
+                const output = document.getElementById('shortcuts-output');
+                if (chrome.runtime.lastError) {
+                    output.textContent = 'Error: ' + chrome.runtime.lastError.message;
+                } else {
+                    output.textContent = 'Toggle UI response: ' + JSON.stringify(response, null, 2) + '\n\n' +
+                        'You can also use Ctrl+Shift+A keyboard shortcut';
+                }
+            });
+        }
+
+        function testTheme() {
+            const output = document.getElementById('shortcuts-output');
+            output.textContent = 'Theme Toggle Test:\n\n' +
+                '1. Open the command palette (Cmd/Ctrl+K)\n' +
+                '2. Search for "Toggle Theme"\n' +
+                '3. Press Enter to switch themes\n\n' +
+                'OR\n\n' +
+                '1. Open the main UI (Ctrl+Shift+A)\n' +
+                '2. Click the sun/moon icon in the header\n\n' +
+                'The theme will persist across sessions!';
+        }
+
+        function checkThemeStatus() {
+            const output = document.getElementById('ui-output');
+            chrome.storage.local.get('theme', (result) => {
+                const theme = result.theme || 'system';
+                output.textContent = 'Current Theme Setting: ' + theme + '\n\n' +
+                    'The extension supports:\n' +
+                    '- light: Always use light theme\n' +
+                    '- dark: Always use dark theme\n' +
+                    '- system: Follow OS preference\n\n' +
+                    'Use the command palette or theme toggle to change.';
             });
         }
 
         function testShowUI() {
             document.getElementById('ui-output').textContent = 
-                'Show UI: Press Ctrl+Shift+A to show the UI panel on the right side';
+                'Show UI: Press Ctrl+Shift+A to show the UI panel on the right side\n\n' +
+                'The UI panel includes:\n' +
+                '- Theme toggle button (sun/moon icon)\n' +
+                '- Conversation interface\n' +
+                '- Settings and options';
         }
 
         function testHideUI() {
             document.getElementById('ui-output').textContent = 
-                'Hide UI: Press Ctrl+Shift+A again to hide the UI panel';
+                'Hide UI: Press Ctrl+Shift+A again to hide the UI panel\n\n' +
+                'Or click the X button in the panel header';
         }
 
         // Database Tests

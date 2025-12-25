@@ -76,7 +76,7 @@ export function requestAnimationFrameWrapper(callback: () => void): number {
   if (typeof window !== 'undefined' && window.requestAnimationFrame) {
     return window.requestAnimationFrame(callback);
   } else {
-    return setTimeout(callback, 16) as unknown as number; // ~60fps fallback
+    return setTimeout(callback, 16); // ~60fps fallback
   }
 }
 

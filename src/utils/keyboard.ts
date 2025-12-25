@@ -110,6 +110,8 @@ export class KeyboardShortcutManager {
     const meta = shortcut.meta ?? false;
 
     // Handle platform-specific Cmd/Ctrl
+    // Note: Using navigator.platform for backward compatibility
+    // TODO: Migrate to navigator.userAgentData when widely supported
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const modifierKey = isMac ? event.metaKey : event.ctrlKey;
     const hasModifier = ctrl || meta;

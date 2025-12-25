@@ -170,14 +170,14 @@ export class CommandPalette {
     });
 
     this.registerAction({
-      id: 'toggle-sidebar',
-      label: 'Toggle Sidebar',
-      description: 'Show or hide the sidebar',
+      id: 'toggle-main-ui',
+      label: 'Toggle Main UI',
+      description: 'Show or hide the main UI panel',
       category: 'Navigation',
-      icon: '📂',
-      shortcut: 'Ctrl+Shift+S',
+      icon: '🔲',
+      shortcut: 'Ctrl+Shift+A',
       handler: () => {
-        console.log('[CommandPalette] Toggle sidebar');
+        console.log('[CommandPalette] Toggle main UI');
         chrome.runtime.sendMessage({ type: 'TOGGLE_UI' }).catch(console.error);
       }
     });

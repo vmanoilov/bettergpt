@@ -15,13 +15,22 @@ import type { Conversation, Folder } from '../content/types';
 import { memoize } from '../utils/performance';
 
 /**
+ * Cache TTL configuration (in milliseconds)
+ */
+const CACHE_TTL_MS = 60000; // 1 minute - can be adjusted based on performance needs
+
+/**
  * Cache for frequently accessed data
  */
 class DatabaseCache {
   private conversationCache: Map<string, { data: Conversation; timestamp: number }> = new Map();
   private folderCache: Map<string, { data: Folder; timestamp: number }> = new Map();
   private queryCache: Map<string, { data: any; timestamp: number }> = new Map();
-  private cacheTTL = 60000; // 1 minute TTL
+  private cacheTTL: number;
+
+  constructor(ttl: number = CACHE_TTL_MS) {
+    this.cacheTTL = ttl;
+  }
 
   set(key: string, data: any, type: 'conversation' | 'folder' | 'query'): void {
     const cache = type === 'conversation' ? this.conversationCache :

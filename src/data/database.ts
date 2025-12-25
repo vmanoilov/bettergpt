@@ -12,6 +12,7 @@
 
 import Dexie, { Table } from 'dexie';
 import type { Conversation, Folder, ConversationLink } from '../content/types';
+import type { ExportHistoryRecord } from '../managers/export-manager';
 
 /**
  * BetterGPT Database class
@@ -20,6 +21,8 @@ export class BetterGPTDatabase extends Dexie {
   // Tables
   conversations!: Table<Conversation, string>;
   folders!: Table<Folder, string>;
+  conversationLinks!: Table<ConversationLink, string>;
+  exportHistory!: Table<ExportHistoryRecord, string>;
   
   // Cache
   private cache = new DatabaseCache();
@@ -38,6 +41,14 @@ export class BetterGPTDatabase extends Dexie {
       conversations: 'id, title, model, createdAt, updatedAt, folderId, parentId, isArchived, isFavorite, *tags',
       folders: 'id, name, parentId, createdAt, updatedAt',
       conversationLinks: 'id, sourceId, targetId, type, createdAt'
+    });
+
+    // Version 3: Add export history table
+    this.version(3).stores({
+      conversations: 'id, title, model, createdAt, updatedAt, folderId, parentId, isArchived, isFavorite, *tags',
+      folders: 'id, name, parentId, createdAt, updatedAt',
+      conversationLinks: 'id, sourceId, targetId, type, createdAt',
+      exportHistory: 'id, conversationId, timestamp, format, success'
     });
   }
 
@@ -476,6 +487,60 @@ export class BetterGPTDatabase extends Dexie {
     const links = await this.getConversationLinks(conversationId);
     const linkIds = links.map(link => link.id);
     await this.conversationLinks.bulkDelete(linkIds);
+  }
+
+  /**
+   * Save export history record
+   */
+  async saveExportHistory(record: ExportHistoryRecord): Promise<void> {
+    await this.exportHistory.put(record);
+  }
+
+  /**
+   * Get export history (most recent first)
+   */
+  async getExportHistory(limit?: number): Promise<ExportHistoryRecord[]> {
+    const query = this.exportHistory.orderBy('timestamp').reverse();
+    
+    if (limit) {
+      return await query.limit(limit).toArray();
+    }
+    
+    return await query.toArray();
+  }
+
+  /**
+   * Get export history for a specific conversation
+   */
+  async getConversationExportHistory(conversationId: string): Promise<ExportHistoryRecord[]> {
+    return await this.exportHistory
+      .where('conversationId')
+      .equals(conversationId)
+      .reverse()
+      .sortBy('timestamp');
+  }
+
+  /**
+   * Clear export history
+   */
+  async clearExportHistory(): Promise<void> {
+    await this.exportHistory.clear();
+  }
+
+  /**
+   * Delete old export history records (older than specified days)
+   */
+  async deleteOldExportHistory(days: number): Promise<number> {
+    const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+    const oldRecords = await this.exportHistory
+      .where('timestamp')
+      .below(cutoffTime)
+      .toArray();
+    
+    const ids = oldRecords.map(record => record.id);
+    await this.exportHistory.bulkDelete(ids);
+    
+    return ids.length;
   }
 }
 

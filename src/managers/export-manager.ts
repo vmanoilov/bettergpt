@@ -1,11 +1,6 @@
 /**
  * Export Manager
  * 
- * Manages conversation export operations:
- * - Export conversations in multiple formats (JSON, Markdown, Text, HTML)
- * - Auto-export on conversation completion
- * - Bulk export operations
- * - Export history tracking
  * Handles exporting conversations in various formats:
  * - Markdown (.md)
  * - Plain text (.txt)
@@ -14,288 +9,24 @@
  * - PDF (.pdf)
  * - DOCX (.docx)
  * 
- * Supports custom templates and bulk exports.
+ * Features:
+ * - Multiple export formats with templates
+ * - Bulk export operations
+ * - Export history tracking in IndexedDB
+ * - Error handling with retry logic
+ * - Cross-platform filename validation
+ * - Cleanup logic for incomplete exports
  */
 
 import type { Conversation } from '../content/types';
 import { db } from '../data/database';
+import { templateManager } from './template-manager';
 
-export type ExportFormat = 'json' | 'markdown' | 'text' | 'html';
-
-export interface ExportOptions {
-  format: ExportFormat;
-  includeMetadata?: boolean;
-  autoExport?: boolean;
-  fileName?: string;
-}
-
-export interface ExportRecord {
-  id: string;
-  conversationId: string;
-  format: ExportFormat;
-  timestamp: number;
-  fileName: string;
-}
-
-export class ExportManager {
-  private autoExportEnabled = false;
-  private autoExportFormat: ExportFormat = 'markdown';
-  private exportHistory: ExportRecord[] = [];
-
-  /**
-   * Initialize export manager
-   */
-  async initialize(): Promise<void> {
-    console.log('[ExportManager] Initializing');
-    await this.loadSettings();
-  }
-
-  /**
-   * Load export settings from storage
-   */
-  private async loadSettings(): Promise<void> {
-    try {
-      // Check if Chrome storage API is available
-      if (!chrome?.storage?.local) {
-        console.warn('[ExportManager] Chrome storage API not available, using defaults');
-        return;
-      }
-      
-      const result = await chrome.storage.local.get(['autoExport', 'autoExportFormat']);
-      this.autoExportEnabled = result.autoExport || false;
-      this.autoExportFormat = result.autoExportFormat || 'markdown';
-      console.log('[ExportManager] Settings loaded:', { 
-        autoExport: this.autoExportEnabled, 
-        format: this.autoExportFormat 
-      });
-    } catch (error) {
-      console.error('[ExportManager] Error loading settings:', error);
-    }
-  }
-
-  /**
-   * Save export settings to storage
-   */
-  private async saveSettings(): Promise<void> {
-    try {
-      if (!chrome?.storage?.local) {
-        console.warn('[ExportManager] Chrome storage API not available');
-        return;
-      }
-      
-      await chrome.storage.local.set({
-        autoExport: this.autoExportEnabled,
-        autoExportFormat: this.autoExportFormat
-      });
-    } catch (error) {
-      console.error('[ExportManager] Error saving settings:', error);
-    }
-  }
-
-  /**
-   * Enable/disable auto-export
-   */
-  async setAutoExport(enabled: boolean, format?: ExportFormat): Promise<void> {
-    this.autoExportEnabled = enabled;
-    if (format) {
-      this.autoExportFormat = format;
-    }
-    await this.saveSettings();
-    console.log('[ExportManager] Auto-export:', enabled ? 'enabled' : 'disabled');
-  }
-
-  /**
-   * Export conversation when completed
-   * Called by integrations when a conversation is finished
-   */
-  async onConversationCompleted(conversationId: string): Promise<void> {
-    if (!this.autoExportEnabled) {
-      return;
-    }
-
-    console.log('[ExportManager] Auto-exporting completed conversation:', conversationId);
-    
-    try {
-      await this.exportConversation(conversationId, {
-        format: this.autoExportFormat,
-        includeMetadata: true
-      });
-    } catch (error) {
-      console.error('[ExportManager] Error auto-exporting conversation:', error);
-    }
-  }
-
-  /**
-   * Export a single conversation
-   */
-  async exportConversation(
-    conversationId: string, 
-    options: ExportOptions = { format: 'json' }
-  ): Promise<void> {
-    const conversation = await db.getConversation(conversationId);
-    if (!conversation) {
-      throw new Error('Conversation not found');
-    }
-
-    const fileName = options.fileName || this.generateFileName(conversation, options.format);
-    const content = this.formatConversation(conversation, options);
-    
-    await this.downloadFile(content, fileName);
-    
-    // Track export in history
-    this.addToExportHistory({
-      id: `export_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-      conversationId,
-      format: options.format,
-      timestamp: Date.now(),
-      fileName
-    });
-
-    console.log('[ExportManager] Exported conversation:', conversationId, 'as', fileName);
-  }
-
-  /**
-   * Export multiple conversations
-   */
-  async exportConversations(
-    conversationIds: string[], 
-    options: ExportOptions = { format: 'json' }
-  ): Promise<void> {
-    console.log('[ExportManager] Bulk exporting conversations:', conversationIds.length);
-    
-    const conversations: Conversation[] = [];
-    for (const id of conversationIds) {
-      const conversation = await db.getConversation(id);
-      if (conversation) {
-        conversations.push(conversation);
-      }
-    }
-
-    const fileName = options.fileName || `conversations_export_${Date.now()}.${this.getFileExtension(options.format)}`;
-    const content = this.formatConversations(conversations, options);
-    
-    await this.downloadFile(content, fileName);
-    
-    console.log('[ExportManager] Bulk export complete:', fileName);
-  }
-
-  /**
-   * Format a single conversation based on export format
-   */
-  private formatConversation(conversation: Conversation, options: ExportOptions): string {
-    switch (options.format) {
-      case 'json':
-        return this.formatAsJSON(conversation, options.includeMetadata);
-      case 'markdown':
-        return this.formatAsMarkdown(conversation, options.includeMetadata);
-      case 'text':
-        return this.formatAsText(conversation, options.includeMetadata);
-      case 'html':
-        return this.formatAsHTML(conversation, options.includeMetadata);
-      default:
-        return this.formatAsJSON(conversation, options.includeMetadata);
-    }
-  }
-
-  /**
-   * Format multiple conversations
-   */
-  private formatConversations(conversations: Conversation[], options: ExportOptions): string {
-    if (options.format === 'json') {
-      return JSON.stringify(conversations, null, 2);
-    }
-
-    // For other formats, concatenate individual exports
-    return conversations.map(conv => this.formatConversation(conv, options)).join('\n\n---\n\n');
-  }
-
-  /**
-   * Format as JSON
-   */
-  private formatAsJSON(conversation: Conversation, includeMetadata = true): string {
-    if (includeMetadata) {
-      return JSON.stringify(conversation, null, 2);
-    }
-
-    // Export only messages without metadata
-    return JSON.stringify({
-      title: conversation.title,
-      messages: conversation.messages
-    }, null, 2);
-  }
-
-  /**
-   * Format as Markdown
-   */
-  private formatAsMarkdown(conversation: Conversation, includeMetadata = true): string {
-    let markdown = `# ${conversation.title}\n\n`;
-
-    if (includeMetadata) {
-      markdown += `**Model:** ${conversation.model}\n`;
-      markdown += `**Created:** ${new Date(conversation.createdAt).toLocaleString()}\n`;
-      markdown += `**Updated:** ${new Date(conversation.updatedAt).toLocaleString()}\n`;
-      if (conversation.totalTokens) {
-        markdown += `**Total Tokens:** ${conversation.totalTokens}\n`;
-      }
-      markdown += '\n---\n\n';
-    }
-
-    for (const message of conversation.messages) {
-      const role = message.role.charAt(0).toUpperCase() + message.role.slice(1);
-      markdown += `## ${role}\n\n${message.content}\n\n`;
-      
-      if (message.attachments && message.attachments.length > 0) {
-        markdown += '**Attachments:**\n';
-        for (const attachment of message.attachments) {
-          markdown += `- ${attachment.name} (${attachment.type})\n`;
-        }
-        markdown += '\n';
-      }
-    }
-
-    return markdown;
-  }
-
-  /**
-   * Format as plain text
-   */
-  private formatAsText(conversation: Conversation, includeMetadata = true): string {
-    let text = `${conversation.title}\n${'='.repeat(conversation.title.length)}\n\n`;
-
-    if (includeMetadata) {
-      text += `Model: ${conversation.model}\n`;
-      text += `Created: ${new Date(conversation.createdAt).toLocaleString()}\n`;
-      text += `Updated: ${new Date(conversation.updatedAt).toLocaleString()}\n`;
-      if (conversation.totalTokens) {
-        text += `Total Tokens: ${conversation.totalTokens}\n`;
-      }
-      text += '\n' + '-'.repeat(50) + '\n\n';
-    }
-
-    for (const message of conversation.messages) {
-      const role = message.role.toUpperCase();
-      text += `[${role}]\n${message.content}\n\n`;
-      
-      if (message.attachments && message.attachments.length > 0) {
-        text += 'Attachments:\n';
-        for (const attachment of message.attachments) {
-          text += `  - ${attachment.name} (${attachment.type})\n`;
-        }
-        text += '\n';
-      }
-    }
-
-    return text;
-  }
-
-  /**
-   * Format as HTML
-   */
-  private formatAsHTML(conversation: Conversation, includeMetadata = true): string {
-    let html = `<!DOCTYPE html>
 // Constants
 const MAX_FILENAME_LENGTH = 50;
 const URL_CLEANUP_DELAY_MS = 100;
+const MAX_RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1000;
 
 export type ExportFormat = 'markdown' | 'txt' | 'json' | 'html' | 'pdf' | 'docx';
 export type MarkdownTemplate = 'standard' | 'obsidian' | 'github';
@@ -316,71 +47,125 @@ export interface ExportResult {
   error?: string;
 }
 
+export interface ExportHistoryRecord {
+  id: string;
+  conversationId: string;
+  conversationIds?: string[];
+  format: ExportFormat;
+  filename: string;
+  timestamp: number;
+  success: boolean;
+  error?: string;
+}
+
 export class ExportManager {
   /**
-   * Export a single conversation
+   * Export a single conversation with retry logic
    */
   async exportConversation(
     conversationId: string,
     options: ExportOptions
   ): Promise<ExportResult> {
-    try {
-      const conversation = await db.getConversation(conversationId);
-      if (!conversation) {
-        return { success: false, error: 'Conversation not found' };
-      }
+    return this.withRetry(async () => {
+      try {
+        const conversation = await db.getConversation(conversationId);
+        if (!conversation) {
+          return { success: false, error: 'Conversation not found' };
+        }
 
-      // Get threads if needed
-      let conversations = [conversation];
-      if (options.includeThreads) {
-        const threads = await db.getConversationThreads(conversationId);
-        conversations = [conversation, ...threads];
-      }
+        // Get threads if needed
+        let conversations = [conversation];
+        if (options.includeThreads) {
+          const threads = await db.getConversationThreads(conversationId);
+          conversations = [conversation, ...threads];
+        }
 
-      return this.exportConversations(conversations, options);
-    } catch (error) {
-      console.error('[ExportManager] Export failed:', error);
-      return { success: false, error: String(error) };
-    }
+        const result = await this.exportConversations(conversations, options);
+        
+        // Record export in history
+        await this.recordExportHistory({
+          conversationId,
+          format: options.format,
+          filename: result.filename || 'unknown',
+          success: result.success,
+          error: result.error,
+        });
+
+        return result;
+      } catch (error) {
+        console.error('[ExportManager] Export failed:', error);
+        const errorMsg = String(error);
+        
+        // Record failed export
+        await this.recordExportHistory({
+          conversationId,
+          format: options.format,
+          filename: 'failed',
+          success: false,
+          error: errorMsg,
+        });
+        
+        return { success: false, error: errorMsg };
+      }
+    });
   }
 
   /**
-   * Export multiple conversations
+   * Export multiple conversations with retry logic
    */
   async exportMultipleConversations(
     conversationIds: string[],
     options: ExportOptions
   ): Promise<ExportResult> {
-    try {
-      const conversations: Conversation[] = [];
-      
-      for (const id of conversationIds) {
-        const conv = await db.getConversation(id);
-        if (conv) {
-          conversations.push(conv);
-          
-          // Include threads if needed
-          if (options.includeThreads) {
-            const threads = await db.getConversationThreads(id);
-            conversations.push(...threads);
+    return this.withRetry(async () => {
+      try {
+        const conversations: Conversation[] = [];
+        
+        for (const id of conversationIds) {
+          const conv = await db.getConversation(id);
+          if (conv) {
+            conversations.push(conv);
+            
+            // Include threads if needed
+            if (options.includeThreads) {
+              const threads = await db.getConversationThreads(id);
+              conversations.push(...threads);
+            }
           }
         }
-      }
 
-      if (conversations.length === 0) {
-        return { success: false, error: 'No conversations found' };
-      }
+        if (conversations.length === 0) {
+          return { success: false, error: 'No conversations found' };
+        }
 
-      // For multiple conversations, create a zip archive
-      if (conversations.length > 1) {
-        return this.exportAsZip(conversations, options);
-      }
+        const result = await this.exportConversations(conversations, options);
+        
+        // Record export in history
+        await this.recordExportHistory({
+          conversationIds,
+          format: options.format,
+          filename: result.filename || 'unknown',
+          success: result.success,
+          error: result.error,
+        });
 
-      return this.exportConversations(conversations, options);
-    } catch (error) {
-      console.error('[ExportManager] Bulk export failed:', error);
-      return { success: false, error: String(error) };
-    }
+        return result;
+      } catch (error) {
+        console.error('[ExportManager] Bulk export failed:', error);
+        const errorMsg = String(error);
+        
+        // Record failed export
+        await this.recordExportHistory({
+          conversationIds,
+          format: options.format,
+          filename: 'failed',
+          success: false,
+          error: errorMsg,
+        });
+        
+        return { success: false, error: errorMsg };
+      }
+    });
   }
 
   /**
@@ -390,6 +175,11 @@ export class ExportManager {
     conversations: Conversation[],
     options: ExportOptions
   ): Promise<ExportResult> {
+    // Use custom template if provided
+    if (options.customTemplate) {
+      return this.exportWithCustomTemplate(conversations, options);
+    }
+
     switch (options.format) {
       case 'markdown':
         return this.exportAsMarkdown(conversations, options);
@@ -400,11 +190,50 @@ export class ExportManager {
       case 'html':
         return this.exportAsHTML(conversations, options);
       case 'pdf':
-        return this.exportAsPDF(conversations, options);
+        return await this.exportAsPDF(conversations, options);
       case 'docx':
-        return this.exportAsDOCX(conversations, options);
+        return await this.exportAsDOCX(conversations, options);
       default:
         return { success: false, error: 'Unsupported format' };
+    }
+  }
+
+  /**
+   * Export using custom template
+   */
+  private exportWithCustomTemplate(
+    conversations: Conversation[],
+    options: ExportOptions
+  ): ExportResult {
+    try {
+      if (!options.customTemplate) {
+        return { success: false, error: 'No custom template provided' };
+      }
+
+      // Validate template
+      const validation = templateManager.validateTemplate(options.customTemplate);
+      if (!validation.valid) {
+        return { success: false, error: `Invalid template: ${validation.errors.join(', ')}` };
+      }
+
+      let content = '';
+      for (const conversation of conversations) {
+        content += templateManager.renderCustomTemplate(options.customTemplate, conversation);
+        if (conversations.length > 1) {
+          content += '\n\n---\n\n';
+        }
+      }
+
+      const extension = options.format === 'markdown' ? 'md' : 
+                       options.format === 'txt' ? 'txt' : 'html';
+      const filename = this.generateFilename(conversations, extension);
+      const mimeType = options.format === 'markdown' ? 'text/markdown' :
+                      options.format === 'txt' ? 'text/plain' : 'text/html';
+      const blob = new Blob([content], { type: mimeType });
+
+      return { success: true, data: blob, filename };
+    } catch (error) {
+      return { success: false, error: String(error) };
     }
   }
 
@@ -421,7 +250,9 @@ export class ExportManager {
 
       for (const conversation of conversations) {
         content += this.formatMarkdown(conversation, template, options.includeMetadata);
-        content += '\n\n---\n\n';
+        if (conversations.length > 1) {
+          content += '\n\n---\n\n';
+        }
       }
 
       const filename = this.generateFilename(conversations, 'md');
@@ -575,7 +406,9 @@ export class ExportManager {
           content += `${message.content}\n\n`;
         }
 
-        content += '\n---\n\n';
+        if (conversations.length > 1) {
+          content += '\n---\n\n';
+        }
       }
 
       const filename = this.generateFilename(conversations, 'txt');
@@ -624,12 +457,6 @@ export class ExportManager {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${this.escapeHtml(conversation.title)}</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      max-width: 800px;
-      margin: 40px auto;
   <title>BetterGPT Conversations Export</title>
   <style>
     body {
@@ -644,39 +471,6 @@ export class ExportManager {
       border-bottom: 2px solid #333;
       padding-bottom: 10px;
     }
-    .metadata {
-      background: #f5f5f5;
-      padding: 15px;
-      border-radius: 5px;
-      margin: 20px 0;
-    }
-    .message {
-      margin: 20px 0;
-      padding: 15px;
-      border-radius: 5px;
-    }
-    .user {
-      background: #e3f2fd;
-    }
-    .assistant {
-      background: #f5f5f5;
-    }
-    .system {
-      background: #fff3e0;
-    }
-    .role {
-      font-weight: bold;
-      margin-bottom: 10px;
-      text-transform: uppercase;
-      font-size: 0.9em;
-    }
-    .content {
-      white-space: pre-wrap;
-    }
-    .attachments {
-      margin-top: 10px;
-      font-size: 0.9em;
-      color: #666;
     .conversation {
       margin-bottom: 40px;
       border: 1px solid #e0e0e0;
@@ -743,204 +537,6 @@ export class ExportManager {
   </style>
 </head>
 <body>
-  <h1>${this.escapeHtml(conversation.title)}</h1>
-`;
-
-    if (includeMetadata) {
-      html += `  <div class="metadata">
-    <p><strong>Model:</strong> ${this.escapeHtml(conversation.model)}</p>
-    <p><strong>Created:</strong> ${new Date(conversation.createdAt).toLocaleString()}</p>
-    <p><strong>Updated:</strong> ${new Date(conversation.updatedAt).toLocaleString()}</p>`;
-      
-      if (conversation.totalTokens) {
-        html += `    <p><strong>Total Tokens:</strong> ${conversation.totalTokens}</p>`;
-      }
-      
-      html += `  </div>\n`;
-    }
-
-    for (const message of conversation.messages) {
-      html += `  <div class="message ${message.role}">
-    <div class="role">${this.escapeHtml(message.role)}</div>
-    <div class="content">${this.escapeHtml(message.content)}</div>`;
-      
-      if (message.attachments && message.attachments.length > 0) {
-        html += `    <div class="attachments">
-      <strong>Attachments:</strong><br>`;
-        for (const attachment of message.attachments) {
-          html += `      • ${this.escapeHtml(attachment.name)} (${this.escapeHtml(attachment.type)})<br>`;
-        }
-        html += `    </div>`;
-      }
-      
-      html += `  </div>\n`;
-    }
-
-    html += `</body>
-</html>`;
-
-    return html;
-  }
-
-  /**
-   * Escape HTML special characters
-   */
-  private escapeHtml(text: string): string {
-    // Use a more robust escaping method that doesn't rely on DOM
-    const htmlEscapeMap: { [key: string]: string } = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-      '/': '&#x2F;'
-    };
-    
-    return text.replace(/[&<>"'\/]/g, (char) => htmlEscapeMap[char] || char);
-  }
-
-  /**
-   * Generate a filename for the export
-   */
-  private generateFileName(conversation: Conversation, format: ExportFormat): string {
-    let sanitizedTitle = conversation.title
-      .replace(/[^a-z0-9]/gi, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
-      .toLowerCase()
-      .substring(0, 50);
-    
-    // Ensure we have a valid filename
-    if (!sanitizedTitle || sanitizedTitle.length === 0) {
-      sanitizedTitle = 'conversation';
-    }
-    
-    const timestamp = new Date().toISOString().split('T')[0];
-    const extension = this.getFileExtension(format);
-    
-    return `${sanitizedTitle}_${timestamp}.${extension}`;
-  }
-
-  /**
-   * Get file extension for format
-   */
-  private getFileExtension(format: ExportFormat): string {
-    switch (format) {
-      case 'json':
-        return 'json';
-      case 'markdown':
-        return 'md';
-      case 'text':
-        return 'txt';
-      case 'html':
-        return 'html';
-      default:
-        return 'txt';
-    }
-  }
-
-  /**
-   * Download file to user's computer
-   */
-  private async downloadFile(content: string, fileName: string): Promise<void> {
-    // Determine appropriate MIME type based on file extension
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    let mimeType = 'text/plain';
-    
-    switch (extension) {
-      case 'json':
-        mimeType = 'application/json';
-        break;
-      case 'html':
-        mimeType = 'text/html';
-        break;
-      case 'md':
-        mimeType = 'text/markdown';
-        break;
-      case 'txt':
-        mimeType = 'text/plain';
-        break;
-    }
-    
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    
-    try {
-      // Use Chrome downloads API if available
-      if (chrome?.downloads) {
-        try {
-          await chrome.downloads.download({
-            url: url,
-            filename: fileName,
-            saveAs: true
-          });
-        } catch (downloadError) {
-          console.error('[ExportManager] Chrome downloads API failed:', downloadError);
-          // Fall back to DOM method if downloads API fails
-          this.downloadViaDomLink(url, fileName);
-        }
-      } else {
-        // Fallback to creating a download link
-        this.downloadViaDomLink(url, fileName);
-      }
-    } finally {
-      // Clean up the blob URL after a delay
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-  }
-
-  /**
-   * Download file using DOM link element (fallback method)
-   */
-  private downloadViaDomLink(url: string, fileName: string): void {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  /**
-   * Add export to history
-   */
-  private addToExportHistory(record: ExportRecord): void {
-    this.exportHistory.push(record);
-    
-    // Keep only last 100 exports in memory
-    if (this.exportHistory.length > 100) {
-      this.exportHistory = this.exportHistory.slice(-100);
-    }
-  }
-
-  /**
-   * Get export history
-   */
-  getExportHistory(): ExportRecord[] {
-    return [...this.exportHistory];
-  }
-
-  /**
-   * Get export history for a specific conversation
-   */
-  getConversationExportHistory(conversationId: string): ExportRecord[] {
-    return this.exportHistory.filter(record => record.conversationId === conversationId);
-  }
-
-  /**
-   * Clear export history
-   */
-  clearExportHistory(): void {
-    this.exportHistory = [];
-    console.log('[ExportManager] Export history cleared');
-  }
-
-  /**
-   * Cleanup
-   */
-  destroy(): void {
-    console.log('[ExportManager] Destroying');
-    this.exportHistory = [];
   <h1>BetterGPT Conversations Export</h1>
   <p>Exported on ${new Date().toLocaleString()}</p>
 `;
@@ -1000,14 +596,17 @@ export class ExportManager {
   }
 
   /**
-   * Export as PDF (using browser print API)
+   * Export as PDF
+   * Note: This is a placeholder implementation
+   * In a real implementation, we would use jsPDF library
    */
   private async exportAsPDF(
     conversations: Conversation[],
     options: ExportOptions
   ): Promise<ExportResult> {
     try {
-      // Generate HTML content first
+      // For now, generate HTML and return with note about PDF conversion
+      // TODO: Implement proper PDF generation using jsPDF library
       const htmlResult = this.exportAsHTML(conversations, options);
       
       if (!htmlResult.success || !htmlResult.data) {
@@ -1015,12 +614,11 @@ export class ExportManager {
       }
 
       // Return HTML with instructions to use browser print
-      // In a real extension, we would use chrome.printing API or similar
       return {
         success: true,
         data: htmlResult.data,
         filename: this.generateFilename(conversations, 'html'),
-        error: 'PDF export requires using browser print dialog. Opening HTML version...'
+        error: 'PDF export will be implemented using jsPDF library. Use browser print (Ctrl+P) to save as PDF.'
       };
     } catch (error) {
       return { success: false, error: String(error) };
@@ -1029,8 +627,8 @@ export class ExportManager {
 
   /**
    * Export as DOCX
-   * Note: This would require a library like docx.js
-   * For now, we'll export as HTML with a note
+   * Note: This is a placeholder implementation
+   * In a real implementation, we would use docx library
    */
   private async exportAsDOCX(
     conversations: Conversation[],
@@ -1038,7 +636,7 @@ export class ExportManager {
   ): Promise<ExportResult> {
     try {
       // For now, export as HTML
-      // In a full implementation, we would use a library like docx.js
+      // TODO: Implement proper DOCX generation using docx library
       const htmlResult = this.exportAsHTML(conversations, options);
       
       if (!htmlResult.success || !htmlResult.data) {
@@ -1049,7 +647,7 @@ export class ExportManager {
         success: true,
         data: htmlResult.data,
         filename: this.generateFilename(conversations, 'html'),
-        error: 'DOCX export not yet implemented. Opening HTML version which can be saved as DOCX...'
+        error: 'DOCX export will be implemented using docx library. Use the HTML file to convert to DOCX.'
       };
     } catch (error) {
       return { success: false, error: String(error) };
@@ -1057,32 +655,13 @@ export class ExportManager {
   }
 
   /**
-   * Export multiple conversations as a zip archive
-   */
-  private async exportAsZip(
-    conversations: Conversation[],
-    options: ExportOptions
-  ): Promise<ExportResult> {
-    try {
-      // For simplicity, export as a single JSON file with all conversations
-      // A real implementation would use a library like JSZip
-      return this.exportAsJSON(conversations, options);
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
-  }
-
-  /**
-   * Generate filename for export
+   * Generate filename for export with cross-platform validation
    */
   private generateFilename(conversations: Conversation[], extension: string): string {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     
     if (conversations.length === 1) {
-      const title = conversations[0].title
-        .replace(/[^a-z0-9]/gi, '_')
-        .toLowerCase()
-        .slice(0, MAX_FILENAME_LENGTH);
+      const title = this.sanitizeFilename(conversations[0].title);
       return `${title}_${timestamp}.${extension}`;
     }
     
@@ -1090,12 +669,50 @@ export class ExportManager {
   }
 
   /**
+   * Sanitize filename for cross-platform compatibility
+   * Removes/replaces characters that are invalid on Windows, macOS, or Linux
+   */
+  private sanitizeFilename(filename: string): string {
+    // Remove or replace invalid characters
+    // Windows: < > : " / \ | ? *
+    // Also remove control characters (0-31) and DEL (127)
+    let sanitized = filename
+      .replace(/[<>:"/\\|?*\x00-\x1f\x7f]/g, '_')
+      .replace(/\s+/g, '_')  // Replace spaces with underscores
+      .replace(/_+/g, '_')    // Collapse multiple underscores
+      .replace(/^_+|_+$/g, '') // Remove leading/trailing underscores
+      .toLowerCase();
+    
+    // Ensure we have a valid filename
+    if (!sanitized || sanitized.length === 0) {
+      sanitized = 'conversation';
+    }
+    
+    // Truncate to max length
+    if (sanitized.length > MAX_FILENAME_LENGTH) {
+      sanitized = sanitized.substring(0, MAX_FILENAME_LENGTH);
+    }
+    
+    // Ensure filename doesn't end with a dot or space (invalid on Windows)
+    sanitized = sanitized.replace(/[.\s]+$/, '');
+    
+    return sanitized || 'conversation';
+  }
+
+  /**
    * Escape HTML special characters
    */
   private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    const htmlEscapeMap: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+      '/': '&#x2F;'
+    };
+    
+    return text.replace(/[&<>"'\/]/g, (char) => htmlEscapeMap[char] || char);
   }
 
   /**
@@ -1114,6 +731,110 @@ export class ExportManager {
     
     // Clean up URL after download completes
     setTimeout(() => URL.revokeObjectURL(url), URL_CLEANUP_DELAY_MS);
+  }
+
+  /**
+   * Retry logic for export operations
+   */
+  private async withRetry<T>(
+    operation: () => Promise<T>,
+    attempts: number = MAX_RETRY_ATTEMPTS
+  ): Promise<T> {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (i === attempts - 1) {
+          throw error;
+        }
+        // Exponential backoff
+        const delay = RETRY_DELAY_MS * Math.pow(2, i);
+        console.warn(`[ExportManager] Retry attempt ${i + 1}/${attempts} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw new Error('Max retry attempts reached');
+  }
+
+  /**
+   * Record export in history (IndexedDB)
+   */
+  private async recordExportHistory(record: Partial<ExportHistoryRecord>): Promise<void> {
+    try {
+      const historyRecord: ExportHistoryRecord = {
+        id: `export_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        conversationId: record.conversationId || '',
+        conversationIds: record.conversationIds,
+        format: record.format!,
+        filename: record.filename!,
+        timestamp: Date.now(),
+        success: record.success || false,
+        error: record.error,
+      };
+
+      // Save to IndexedDB via the database
+      await db.saveExportHistory(historyRecord);
+      
+      console.log('[ExportManager] Export history recorded:', historyRecord.id);
+    } catch (error) {
+      console.error('[ExportManager] Failed to record export history:', error);
+      // Don't throw - recording history failure shouldn't fail the export
+    }
+  }
+
+  /**
+   * Get export history from IndexedDB
+   */
+  async getExportHistory(limit?: number): Promise<ExportHistoryRecord[]> {
+    try {
+      return await db.getExportHistory(limit);
+    } catch (error) {
+      console.error('[ExportManager] Failed to get export history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get export history for a specific conversation
+   */
+  async getConversationExportHistory(conversationId: string): Promise<ExportHistoryRecord[]> {
+    try {
+      return await db.getConversationExportHistory(conversationId);
+    } catch (error) {
+      console.error('[ExportManager] Failed to get conversation export history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Clear export history
+   */
+  async clearExportHistory(): Promise<void> {
+    try {
+      await db.clearExportHistory();
+      console.log('[ExportManager] Export history cleared');
+    } catch (error) {
+      console.error('[ExportManager] Failed to clear export history:', error);
+    }
+  }
+
+  /**
+   * Cleanup incomplete or corrupted exports
+   */
+  async cleanupIncompleteExports(): Promise<number> {
+    try {
+      const history = await this.getExportHistory();
+      const incompleteExports = history.filter(record => !record.success);
+      
+      // In a real implementation, we would clean up any temporary files
+      // For now, we just log the incomplete exports
+      console.log(`[ExportManager] Found ${incompleteExports.length} incomplete exports`);
+      
+      return incompleteExports.length;
+    } catch (error) {
+      console.error('[ExportManager] Failed to cleanup incomplete exports:', error);
+      return 0;
+    }
   }
 }
 

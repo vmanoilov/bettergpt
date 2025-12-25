@@ -1,5 +1,5 @@
 /**
- * Export Manager
+ * Export Manager - TEMPORARY STUB
  * 
  * Handles exporting conversations in various formats:
  * - Markdown (.md)
@@ -986,5 +986,4 @@ export class ExportManager {
   }
 }
 
-// Export singleton instance
 export const exportManager = new ExportManager();

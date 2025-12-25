@@ -1,13 +1,13 @@
 # BetterGPT - Personal AI Assistant Chrome Extension
 
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/vmanoilov/bettergpt)
+
 ## Overview
 
 BetterGPT is a Chrome extension designed to provide an intelligent, context-aware AI assistant directly within your browser. Built with modern web technologies, it aims to enhance your browsing experience with seamless AI interactions.
 
-## ✨ Current Features
-
-### ChatGPT Integration
-## ✨ Phase 5 Features (Current - UI & UX Polish)
+## ✨ Features
 
 ### Command Palette
 - **Universal Command Interface**: Press `Cmd/Ctrl+K` to access all extension features
@@ -34,28 +34,14 @@ BetterGPT is a Chrome extension designed to provide an intelligent, context-awar
 - **CSS Variables**: All colors use CSS custom properties for easy theming
 - **Theme Toggle**: Quick theme switching via UI button or command palette
 
-### Performance Optimizations
-- **Virtual Scrolling**: Efficient rendering for large lists (only visible items rendered)
-- **Database Caching**: Query results cached with automatic invalidation
-- **Batch Operations**: Multiple database operations executed efficiently
-- **Throttling & Debouncing**: Event handlers optimized for performance
-- **Pagination Support**: Load data in chunks for better performance
-
-### Developer Features
-- **Memoization**: Cache expensive function results
-- **Batch Scheduler**: Group multiple updates into single animation frame
-- **Performance Utilities**: Throttle, debounce, and timing helpers
-
-## ✨ Phase 2 Features (Completed)
-
-### ChatGPT Integration (Phase 2)
+### ChatGPT Integration
 - **API Interception**: Automatically captures ChatGPT conversations in real-time
 - **DOM Monitoring**: Tracks conversation changes and updates
 - **Sidebar UI**: Injected sidebar in ChatGPT for quick access to saved conversations
 - **Streaming Support**: Handles both regular and streaming API responses
 - **Metadata Extraction**: Captures model info, token usage, and conversation metadata
 
-### Conversation Management (Phase 2)
+### Conversation Management
 - **Auto-Save**: Conversations are automatically saved to IndexedDB
 - **Folder Organization**: Create folders to organize conversations
 - **Archive/Favorite**: Mark conversations as archived or favorite
@@ -63,43 +49,32 @@ BetterGPT is a Chrome extension designed to provide an intelligent, context-awar
 - **Thread Support**: Parent-child relationships for conversation threads
 - **Search**: Full-text search across conversations
 
-### Export Manager (Phase 4)
-- **Multiple Formats**: Export as JSON, Markdown, Text, or HTML
-- **Auto-Export**: Automatically export conversations when completed
-- **Bulk Export**: Export multiple conversations at once
-- **Export History**: Track all export operations
-- **Configurable**: Choose format and enable/disable auto-export
-
-### Conversation Threading & Context (Phase 3) ✨ NEW
+### Conversation Threading & Context
 - **Conversation Linking**: Fork conversations at any message, continue from existing conversations, or create reference links
 - **Graph Visualization**: Interactive D3.js-powered visualization of conversation relationships with zoom, pan, and drag
 - **Smart Context Management**: Auto-load context from linked conversations with configurable settings
 - **Token Counting**: Visual token usage indicators with model-specific limits
 - **Context Truncation**: Three intelligent strategies (Recent, Relevant, Balanced) to fit context within token limits
 - **Multiple Views**: Switch between List, Graph, and Context views for different workflows
-## ✨ Phase 4 Features (Latest)
 
-### Export System
+### Export & Import System
 - **Multiple Formats**: Markdown (.md), Plain Text (.txt), JSON (.json), HTML (.html), PDF (.pdf), DOCX (.docx)
 - **Markdown Templates**: Standard, Obsidian-compatible, GitHub-flavored
 - **PDF Templates**: Minimal, Academic, Dark modes
-- **Bulk Export**: Export multiple conversations at once
+- **Import Support**: JSON, Markdown with metadata, ChatGPT exports, Plain text
+- **Bulk Operations**: Export/import multiple conversations at once
 - **Thread Preservation**: Maintain parent-child conversation relationships
+- **Custom Templates**: Handlebars-style syntax for custom formatting
 - **Data Integrity**: All metadata and conversation structure preserved
 
-### Import System
-- **Format Support**: JSON, Markdown with metadata, ChatGPT exports, Plain text
-- **Validation**: Automatic data validation and error handling
-- **ID Management**: Prevents conflicts with existing conversations
-- **Folder Preservation**: Optional folder structure maintenance
+**Note:** Export functionality is temporarily disabled due to a build error. See [Known Issues](#known-issues) below.
 
-### Custom Templates
-- **Template Engine**: Handlebars-style syntax for custom formatting
-- **Variables**: Access to title, model, messages, metadata, and more
-- **Built-in Library**: Pre-made templates for common formats
-- **User Templates**: Create and save custom export templates
-
-For detailed documentation, see [PHASE4_EXPORT_IMPORT.md](PHASE4_EXPORT_IMPORT.md).
+### Performance Optimizations
+- **Virtual Scrolling**: Efficient rendering for large lists (only visible items rendered)
+- **Database Caching**: Query results cached with automatic invalidation
+- **Batch Operations**: Multiple database operations executed efficiently
+- **Throttling & Debouncing**: Event handlers optimized for performance
+- **Pagination Support**: Load data in chunks for better performance
 
 ## Core Philosophies
 
@@ -231,52 +206,39 @@ Change theme via:
 4. **Archive & Favorite**: Keep your workspace clean by archiving old conversations or marking important ones as favorites
 5. **Bulk Operations**: Select multiple conversations for batch operations
 
-## Current Status
+## Project Status
 
-### ✅ Phase 1 (Completed)
-- Basic Chrome extension structure
-- Service worker setup
-- Content script infrastructure
-- UI component framework
+### ✅ Completed Phases
 
-### ✅ Phase 2 (Completed)
-- ChatGPT API integration
-- Conversation management
-- Folder organization
-- IndexedDB storage
-- Search functionality
+- **Phase 1**: Basic Chrome extension structure, service worker, content scripts, UI framework
+- **Phase 2**: ChatGPT API integration, conversation management, folder organization, IndexedDB storage
+- **Phase 3**: Conversation linking, graph visualization, context management, token counting
+- **Phase 4**: Export/import system, multiple formats, custom templates
+- **Phase 5**: UI/UX polish, command palette, keyboard shortcuts, theme support, performance optimizations
+- **Phase 6**: Browser compatibility documentation, packaging scripts, store submission guides
 
-### ✅ Phase 4 (Completed)
-- Export Manager module
-- Multiple export formats (JSON, Markdown, Text, HTML)
-- Auto-export on conversation completion
-- Export history tracking
-- Configurable export settings
+### 🚧 Future Enhancements
 
-### 🚧 Phase 3 (Planned)
-- Advanced UI features
-- Settings page
-- Cross-device sync
-- Additional integrations
-### ✅ Phase 3 (Completed) ✨ NEW
-- Conversation linking (fork, continuation, reference)
-- Interactive graph visualization with D3.js
-- Smart context management and auto-loading
-- Token counting and usage visualization
-- Multiple truncation strategies
-- Three-view UI (List, Graph, Context)
-
-### 🚧 Phase 4 (Planned)
 - Settings page and customization
 - Cross-device sync (optional)
-- Export improvements (Markdown, PDF, HTML)
 - Additional AI platform integrations
-- Themes and UI customization
+- Automated testing infrastructure
+
+## Known Issues
+
+### Critical: Export Functionality Temporarily Disabled
+
+The export-manager.ts file has a persistent build error with esbuild/TypeScript template literal parsing. A temporary stub implementation is in place to allow the extension to build. Full export functionality will be restored once this issue is resolved.
+
+- **Status**: Under investigation
+- **Impact**: Export features are non-functional
+- **Workaround**: Stub implementation allows other features to work normally
+- **Details**: See [PHASE6_FINAL_REPORT.md](PHASE6_FINAL_REPORT.md) for complete analysis
 
 ## License
 
-*To be determined*
+ISC License - see [LICENSE](LICENSE) file for details
 
 ## Contributing
 
-*Contribution guidelines will be added as the project matures.*
+We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.

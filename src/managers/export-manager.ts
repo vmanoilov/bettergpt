@@ -21,6 +21,7 @@
 import type { Conversation } from '../content/types';
 import { db } from '../data/database';
 import { templateManager } from './template-manager';
+import jsPDF from 'jspdf';
 
 // Constants
 const MAX_FILENAME_LENGTH = 50;
@@ -596,62 +597,193 @@ export class ExportManager {
   }
 
   /**
-   * Export as PDF
-   * Note: This is a placeholder implementation
-   * In a real implementation, we would use jsPDF library
+   * Export as PDF using jsPDF
    */
   private async exportAsPDF(
     conversations: Conversation[],
     options: ExportOptions
   ): Promise<ExportResult> {
     try {
-      // For now, generate HTML and return with note about PDF conversion
-      // TODO: Implement proper PDF generation using jsPDF library
-      const htmlResult = this.exportAsHTML(conversations, options);
-      
-      if (!htmlResult.success || !htmlResult.data) {
-        return { success: false, error: 'Failed to generate HTML for PDF' };
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 15;
+      const maxWidth = pageWidth - (2 * margin);
+      let yPosition = margin;
+
+      // Helper function to add text with word wrap
+      const addText = (text: string, fontSize: number, isBold: boolean = false) => {
+        pdf.setFontSize(fontSize);
+        if (isBold) {
+          pdf.setFont('helvetica', 'bold');
+        } else {
+          pdf.setFont('helvetica', 'normal');
+        }
+
+        const lines = pdf.splitTextToSize(text, maxWidth);
+        
+        for (const line of lines) {
+          // Check if we need a new page
+          if (yPosition > pageHeight - margin) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          
+          pdf.text(line, margin, yPosition);
+          yPosition += fontSize * 0.5;
+        }
+        
+        yPosition += 3; // Add spacing after paragraph
+      };
+
+      // Add header
+      pdf.setFontSize(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('BetterGPT Conversations Export', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Exported on ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+
+      // Add each conversation
+      for (let i = 0; i < conversations.length; i++) {
+        const conversation = conversations[i];
+
+        // Add page break between conversations
+        if (i > 0) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+
+        // Title
+        addText(conversation.title, 16, true);
+
+        // Metadata
+        if (options.includeMetadata) {
+          addText(`Model: ${conversation.model}`, 10);
+          addText(`Created: ${new Date(conversation.createdAt).toLocaleString()}`, 10);
+          addText(`Updated: ${new Date(conversation.updatedAt).toLocaleString()}`, 10);
+          
+          if (conversation.totalTokens) {
+            addText(`Tokens: ${conversation.totalTokens}`, 10);
+          }
+          
+          if (conversation.tags && conversation.tags.length > 0) {
+            addText(`Tags: ${conversation.tags.join(', ')}`, 10);
+          }
+          
+          yPosition += 5;
+        }
+
+        // Messages
+        for (const message of conversation.messages) {
+          const roleLabel = message.role === 'user' ? '👤 User' : '🤖 Assistant';
+          addText(roleLabel, 12, true);
+          addText(message.content, 10);
+          yPosition += 2;
+        }
       }
 
-      // Return HTML with instructions to use browser print
-      return {
-        success: true,
-        data: htmlResult.data,
-        filename: this.generateFilename(conversations, 'html'),
-        error: 'PDF export will be implemented using jsPDF library. Use browser print (Ctrl+P) to save as PDF.'
+      // Convert to blob
+      const pdfBlob = pdf.output('blob');
+      const filename = this.generateFilename(conversations, 'pdf');
+
+      return { 
+        success: true, 
+        data: pdfBlob, 
+        filename 
       };
     } catch (error) {
+      console.error('[ExportManager] PDF export failed:', error);
       return { success: false, error: String(error) };
     }
   }
 
   /**
-   * Export as DOCX
-   * Note: This is a placeholder implementation
-   * In a real implementation, we would use docx library
+   * Export as DOCX (RTF format for Word compatibility)
+   * Generates RTF format which can be opened in Microsoft Word and other word processors
    */
   private async exportAsDOCX(
     conversations: Conversation[],
     options: ExportOptions
   ): Promise<ExportResult> {
     try {
-      // For now, export as HTML
-      // TODO: Implement proper DOCX generation using docx library
-      const htmlResult = this.exportAsHTML(conversations, options);
+      // Generate RTF format (Rich Text Format) which is compatible with Word
+      let rtf = '{\\rtf1\\ansi\\deff0\n';
+      rtf += '{\\fonttbl{\\f0 Arial;}{\\f1 Courier New;}}\n';
+      rtf += '{\\colortbl;\\red0\\green0\\blue0;\\red0\\green0\\blue255;\\red0\\green128\\blue0;}\n';
       
-      if (!htmlResult.success || !htmlResult.data) {
-        return { success: false, error: 'Failed to generate content for DOCX' };
+      // Header
+      rtf += '{\\fs32\\b BetterGPT Conversations Export}\\par\n';
+      rtf += `{\\fs20 Exported on ${new Date().toLocaleString()}}\\par\\par\n`;
+
+      for (const conversation of conversations) {
+        // Title
+        rtf += `{\\fs28\\b ${this.escapeRtf(conversation.title)}}\\par\n`;
+        
+        // Metadata
+        if (options.includeMetadata) {
+          rtf += `{\\fs20\\b Model: }${this.escapeRtf(conversation.model)}\\par\n`;
+          rtf += `{\\fs20\\b Created: }${new Date(conversation.createdAt).toLocaleString()}\\par\n`;
+          rtf += `{\\fs20\\b Updated: }${new Date(conversation.updatedAt).toLocaleString()}\\par\n`;
+          
+          if (conversation.totalTokens) {
+            rtf += `{\\fs20\\b Tokens: }${conversation.totalTokens}\\par\n`;
+          }
+          
+          if (conversation.tags && conversation.tags.length > 0) {
+            rtf += `{\\fs20\\b Tags: }${this.escapeRtf(conversation.tags.join(', '))}\\par\n`;
+          }
+          
+          rtf += '\\par\n';
+        }
+
+        // Messages
+        for (const message of conversation.messages) {
+          const roleLabel = message.role === 'user' ? 'User' : 'Assistant';
+          const colorCode = message.role === 'user' ? '\\cf2' : '\\cf3';
+          
+          rtf += `{\\fs24\\b${colorCode} ${roleLabel}:}\\par\n`;
+          rtf += `{\\fs20 ${this.escapeRtf(message.content)}}\\par\\par\n`;
+        }
+        
+        if (conversations.length > 1) {
+          rtf += '\\page\n'; // Page break between conversations
+        }
       }
+
+      rtf += '}';
+
+      const filename = this.generateFilename(conversations, 'rtf');
+      const blob = new Blob([rtf], { type: 'application/rtf' });
 
       return {
         success: true,
-        data: htmlResult.data,
-        filename: this.generateFilename(conversations, 'html'),
-        error: 'DOCX export will be implemented using docx library. Use the HTML file to convert to DOCX.'
+        data: blob,
+        filename,
       };
     } catch (error) {
+      console.error('[ExportManager] DOCX/RTF export failed:', error);
       return { success: false, error: String(error) };
     }
+  }
+
+  /**
+   * Escape special characters for RTF format
+   */
+  private escapeRtf(text: string): string {
+    return text
+      .replace(/\\/g, '\\\\')
+      .replace(/{/g, '\\{')
+      .replace(/}/g, '\\}')
+      .replace(/\n/g, '\\par\n');
   }
 
   /**

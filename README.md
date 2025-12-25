@@ -4,7 +4,7 @@
 
 BetterGPT is a Chrome extension designed to provide an intelligent, context-aware AI assistant directly within your browser. Built with modern web technologies, it aims to enhance your browsing experience with seamless AI interactions.
 
-## ✨ Phase 2 Features (Current)
+## ✨ Current Features
 
 ### ChatGPT Integration
 - **API Interception**: Automatically captures ChatGPT conversations in real-time
@@ -20,7 +20,13 @@ BetterGPT is a Chrome extension designed to provide an intelligent, context-awar
 - **Bulk Operations**: Perform operations on multiple conversations at once
 - **Thread Support**: Parent-child relationships for conversation threads
 - **Search**: Full-text search across conversations
-- **Import/Export**: Save and restore conversations
+
+### Export Manager (Phase 4)
+- **Multiple Formats**: Export as JSON, Markdown, Text, or HTML
+- **Auto-Export**: Automatically export conversations when completed
+- **Bulk Export**: Export multiple conversations at once
+- **Export History**: Track all export operations
+- **Configurable**: Choose format and enable/disable auto-export
 
 ## Core Philosophies
 
@@ -141,11 +147,17 @@ For detailed development information, see [DEVELOPMENT.md](DEVELOPMENT.md).
 - IndexedDB storage
 - Search functionality
 
+### ✅ Phase 4 (Completed)
+- Export Manager module
+- Multiple export formats (JSON, Markdown, Text, HTML)
+- Auto-export on conversation completion
+- Export history tracking
+- Configurable export settings
+
 ### 🚧 Phase 3 (Planned)
 - Advanced UI features
 - Settings page
 - Cross-device sync
-- Export/import improvements
 - Additional integrations
 
 ## License

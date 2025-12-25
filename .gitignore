@@ -10,6 +10,13 @@ build/
 !manifest.json
 !build.js
 
+# Backup and temporary files
+*.broken
+*.backup
+*.new
+*.tmp
+*.bak
+
 # IDE and editors
 .vscode/
 .idea/
@@ -37,7 +44,6 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
-*.tmp
 
 # Testing
 coverage/

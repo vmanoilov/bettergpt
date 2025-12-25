@@ -36,9 +36,9 @@ export class ExportManager {
   /**
    * Initialize export manager
    */
-  initialize(): void {
+  async initialize(): Promise<void> {
     console.log('[ExportManager] Initializing');
-    this.loadSettings();
+    await this.loadSettings();
   }
 
   /**
@@ -46,6 +46,12 @@ export class ExportManager {
    */
   private async loadSettings(): Promise<void> {
     try {
+      // Check if Chrome storage API is available
+      if (!chrome?.storage?.local) {
+        console.warn('[ExportManager] Chrome storage API not available, using defaults');
+        return;
+      }
+      
       const result = await chrome.storage.local.get(['autoExport', 'autoExportFormat']);
       this.autoExportEnabled = result.autoExport || false;
       this.autoExportFormat = result.autoExportFormat || 'markdown';
@@ -63,6 +69,11 @@ export class ExportManager {
    */
   private async saveSettings(): Promise<void> {
     try {
+      if (!chrome?.storage?.local) {
+        console.warn('[ExportManager] Chrome storage API not available');
+        return;
+      }
+      
       await chrome.storage.local.set({
         autoExport: this.autoExportEnabled,
         autoExportFormat: this.autoExportFormat
@@ -371,9 +382,17 @@ export class ExportManager {
    * Escape HTML special characters
    */
   private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    // Use a more robust escaping method that doesn't rely on DOM
+    const htmlEscapeMap: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+      '/': '&#x2F;'
+    };
+    
+    return text.replace(/[&<>"'\/]/g, (char) => htmlEscapeMap[char] || char);
   }
 
   /**
@@ -414,12 +433,31 @@ export class ExportManager {
    * Download file to user's computer
    */
   private async downloadFile(content: string, fileName: string): Promise<void> {
-    const blob = new Blob([content], { type: 'text/plain' });
+    // Determine appropriate MIME type based on file extension
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    let mimeType = 'text/plain';
+    
+    switch (extension) {
+      case 'json':
+        mimeType = 'application/json';
+        break;
+      case 'html':
+        mimeType = 'text/html';
+        break;
+      case 'md':
+        mimeType = 'text/markdown';
+        break;
+      case 'txt':
+        mimeType = 'text/plain';
+        break;
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     
     try {
       // Use Chrome downloads API if available
-      if (chrome.downloads) {
+      if (chrome?.downloads) {
         await chrome.downloads.download({
           url: url,
           filename: fileName,

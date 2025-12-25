@@ -41,7 +41,7 @@ async function initialize(): Promise<void> {
       // Initialize managers
       conversationManager.initialize();
       folderManager.initialize();
-      exportManager.initialize();
+      await exportManager.initialize();
       
       // Initialize ChatGPT integration if on ChatGPT page
       if (isChatGPTPage()) {

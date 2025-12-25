@@ -352,12 +352,18 @@ src/managers/export-manager.ts:467:15
 4. Optional: Create promotional video (30-60s)
 
 ### Store Submission (Priority 3)
-1. Create Chrome Web Store developer account
-2. Create Firefox Add-ons developer account
-3. Run packaging scripts
-4. Upload packages
-5. Fill out store listings
-6. Submit for review
+1. **Update contact information**
+   - Replace placeholder email addresses in:
+     - SUPPORT.md (line 285)
+     - STORE_LISTING_CONTENT.md (line 380)
+     - PRIVACY_POLICY.md (line 157)
+   - Use repository owner's email or create dedicated support address
+2. Create Chrome Web Store developer account
+3. Create Firefox Add-ons developer account
+4. Run packaging scripts
+5. Upload packages
+6. Fill out store listings
+7. Submit for review
 
 ### Post-Launch (Priority 4)
 1. Monitor installation metrics

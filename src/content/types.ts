@@ -7,7 +7,7 @@
  */
 export interface ExtensionConfig {
   enabled: boolean;
-  theme: 'light' | 'dark';
+  theme: 'light' | 'dark' | 'system';
   shortcuts: {
     toggleUI: string;
   };
@@ -134,6 +134,39 @@ export interface MessageAttachment {
 }
 
 /**
+ * Conversation link type
+ */
+export type ConversationLinkType = 'fork' | 'continuation' | 'reference';
+
+/**
+ * Conversation link
+ */
+export interface ConversationLink {
+  id: string;
+  sourceId: string; // Source conversation
+  targetId: string; // Target conversation
+  type: ConversationLinkType;
+  messageId?: string; // Fork point (message where fork occurred)
+  createdAt: number;
+  metadata?: {
+    forkMessage?: string; // Message content at fork point
+    reason?: string; // Optional reason for the link
+  };
+}
+
+/**
+ * Context configuration
+ */
+export interface ConversationContext {
+  conversationId: string;
+  includedLinks: string[]; // IDs of linked conversations to include
+  autoLoadParent: boolean; // Auto-load parent conversation context
+  autoLoadLinks: boolean; // Auto-load linked conversations context
+  maxTokens?: number; // Maximum context tokens to load
+  truncationStrategy?: 'recent' | 'relevant' | 'balanced';
+}
+
+/**
  * Conversation metadata
  */
 export interface Conversation {
@@ -144,7 +177,9 @@ export interface Conversation {
   updatedAt: number;
   messages: ConversationMessage[];
   folderId?: string;
-  parentId?: string; // For thread relationships
+  parentId?: string; // For thread relationships (deprecated, use links instead)
+  links?: ConversationLink[]; // Conversation links
+  context?: ConversationContext; // Context configuration
   isArchived: boolean;
   isFavorite: boolean;
   totalTokens?: number;

@@ -192,7 +192,7 @@ export class ConversationManager {
   }
 
   /**
-   * Export conversation
+   * Export conversation (legacy method - use ExportManager for advanced features)
    */
   async exportConversation(conversationId: string): Promise<string> {
     const conversation = await db.getConversation(conversationId);
@@ -204,7 +204,7 @@ export class ConversationManager {
   }
 
   /**
-   * Import conversation
+   * Import conversation (legacy method - use ImportManager for advanced features)
    */
   async importConversation(data: string): Promise<void> {
     const conversation: Conversation = JSON.parse(data);

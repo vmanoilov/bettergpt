@@ -11,69 +11,7 @@
  */
 
 import Dexie, { Table } from 'dexie';
-import type { Conversation, Folder } from '../content/types';
-import { memoize } from '../utils/performance';
-
-/**
- * Cache TTL configuration (in milliseconds)
- */
-const CACHE_TTL_MS = 60000; // 1 minute - can be adjusted based on performance needs
-
-/**
- * Cache for frequently accessed data
- */
-class DatabaseCache {
-  private conversationCache: Map<string, { data: Conversation; timestamp: number }> = new Map();
-  private folderCache: Map<string, { data: Folder; timestamp: number }> = new Map();
-  private queryCache: Map<string, { data: any; timestamp: number }> = new Map();
-  private cacheTTL: number;
-
-  constructor(ttl: number = CACHE_TTL_MS) {
-    this.cacheTTL = ttl;
-  }
-
-  set(key: string, data: any, type: 'conversation' | 'folder' | 'query'): void {
-    const cache = type === 'conversation' ? this.conversationCache :
-                  type === 'folder' ? this.folderCache : this.queryCache;
-    cache.set(key, { data, timestamp: Date.now() });
-  }
-
-  get(key: string, type: 'conversation' | 'folder' | 'query'): any | null {
-    const cache = type === 'conversation' ? this.conversationCache :
-                  type === 'folder' ? this.folderCache : this.queryCache;
-    const entry = cache.get(key);
-    
-    if (!entry) return null;
-    
-    // Check if cache is still valid
-    if (Date.now() - entry.timestamp > this.cacheTTL) {
-      cache.delete(key);
-      return null;
-    }
-    
-    return entry.data;
-  }
-
-  invalidate(key: string, type: 'conversation' | 'folder' | 'query'): void {
-    const cache = type === 'conversation' ? this.conversationCache :
-                  type === 'folder' ? this.folderCache : this.queryCache;
-    cache.delete(key);
-  }
-
-  invalidateAll(type?: 'conversation' | 'folder' | 'query'): void {
-    if (!type) {
-      this.conversationCache.clear();
-      this.folderCache.clear();
-      this.queryCache.clear();
-    } else if (type === 'conversation') {
-      this.conversationCache.clear();
-    } else if (type === 'folder') {
-      this.folderCache.clear();
-    } else {
-      this.queryCache.clear();
-    }
-  }
-}
+import type { Conversation, Folder, ConversationLink } from '../content/types';
 
 /**
  * BetterGPT Database class
@@ -89,10 +27,17 @@ export class BetterGPTDatabase extends Dexie {
   constructor() {
     super('BetterGPTDB');
 
-    // Define database schema
+    // Define database schema - version 1
     this.version(1).stores({
       conversations: 'id, title, model, createdAt, updatedAt, folderId, parentId, isArchived, isFavorite, *tags',
       folders: 'id, name, parentId, createdAt, updatedAt'
+    });
+
+    // Version 2: Add conversation links table
+    this.version(2).stores({
+      conversations: 'id, title, model, createdAt, updatedAt, folderId, parentId, isArchived, isFavorite, *tags',
+      folders: 'id, name, parentId, createdAt, updatedAt',
+      conversationLinks: 'id, sourceId, targetId, type, createdAt'
     });
   }
 
@@ -471,6 +416,66 @@ export class BetterGPTDatabase extends Dexie {
       .where('parentId')
       .equals(parentId)
       .toArray();
+  }
+
+  /**
+   * Save a conversation link
+   */
+  async saveConversationLink(link: ConversationLink): Promise<void> {
+    await this.conversationLinks.put(link);
+  }
+
+  /**
+   * Get links for a conversation (both source and target)
+   */
+  async getConversationLinks(conversationId: string): Promise<ConversationLink[]> {
+    const sourceLinks = await this.conversationLinks
+      .where('sourceId')
+      .equals(conversationId)
+      .toArray();
+    
+    const targetLinks = await this.conversationLinks
+      .where('targetId')
+      .equals(conversationId)
+      .toArray();
+    
+    return [...sourceLinks, ...targetLinks];
+  }
+
+  /**
+   * Get outgoing links from a conversation
+   */
+  async getOutgoingLinks(conversationId: string): Promise<ConversationLink[]> {
+    return await this.conversationLinks
+      .where('sourceId')
+      .equals(conversationId)
+      .toArray();
+  }
+
+  /**
+   * Get incoming links to a conversation
+   */
+  async getIncomingLinks(conversationId: string): Promise<ConversationLink[]> {
+    return await this.conversationLinks
+      .where('targetId')
+      .equals(conversationId)
+      .toArray();
+  }
+
+  /**
+   * Delete a conversation link
+   */
+  async deleteConversationLink(linkId: string): Promise<void> {
+    await this.conversationLinks.delete(linkId);
+  }
+
+  /**
+   * Delete all links for a conversation
+   */
+  async deleteConversationLinks(conversationId: string): Promise<void> {
+    const links = await this.getConversationLinks(conversationId);
+    const linkIds = links.map(link => link.id);
+    await this.conversationLinks.bulkDelete(linkIds);
   }
 }
 

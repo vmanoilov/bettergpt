@@ -4,6 +4,7 @@
 
 BetterGPT is a Chrome extension designed to provide an intelligent, context-aware AI assistant directly within your browser. Built with modern web technologies, it aims to enhance your browsing experience with seamless AI interactions.
 
+## ✨ Current Features
 ## ✨ Phase 5 Features (Current - UI & UX Polish)
 
 ### Command Palette
@@ -45,14 +46,14 @@ BetterGPT is a Chrome extension designed to provide an intelligent, context-awar
 
 ## ✨ Phase 2 Features (Completed)
 
-### ChatGPT Integration
+### ChatGPT Integration (Phase 2)
 - **API Interception**: Automatically captures ChatGPT conversations in real-time
 - **DOM Monitoring**: Tracks conversation changes and updates
 - **Sidebar UI**: Injected sidebar in ChatGPT for quick access to saved conversations
 - **Streaming Support**: Handles both regular and streaming API responses
 - **Metadata Extraction**: Captures model info, token usage, and conversation metadata
 
-### Conversation Management
+### Conversation Management (Phase 2)
 - **Auto-Save**: Conversations are automatically saved to IndexedDB
 - **Folder Organization**: Create folders to organize conversations
 - **Archive/Favorite**: Mark conversations as archived or favorite
@@ -61,6 +62,13 @@ BetterGPT is a Chrome extension designed to provide an intelligent, context-awar
 - **Search**: Full-text search across conversations
 - **Import/Export**: Save and restore conversations
 
+### Conversation Threading & Context (Phase 3) ✨ NEW
+- **Conversation Linking**: Fork conversations at any message, continue from existing conversations, or create reference links
+- **Graph Visualization**: Interactive D3.js-powered visualization of conversation relationships with zoom, pan, and drag
+- **Smart Context Management**: Auto-load context from linked conversations with configurable settings
+- **Token Counting**: Visual token usage indicators with model-specific limits
+- **Context Truncation**: Three intelligent strategies (Recent, Relevant, Balanced) to fit context within token limits
+- **Multiple Views**: Switch between List, Graph, and Context views for different workflows
 ## ✨ Phase 4 Features (Latest)
 
 ### Export System
@@ -230,28 +238,20 @@ Change theme via:
 - IndexedDB storage
 - Search functionality
 
-### ✅ Phase 5 (Completed - UI & UX Polish)
-- Command palette with keyboard shortcuts
-- Theme manager (Light/Dark/System)
-- Virtual scroll for large lists
-- Performance optimizations (caching, throttling, batch operations)
-- Enhanced keyboard shortcut system
-- CSS variable-based theming
+### ✅ Phase 3 (Completed) ✨ NEW
+- Conversation linking (fork, continuation, reference)
+- Interactive graph visualization with D3.js
+- Smart context management and auto-loading
+- Token counting and usage visualization
+- Multiple truncation strategies
+- Three-view UI (List, Graph, Context)
 
-### 🚧 Phase 6 (Planned)
-### ✅ Phase 4 (Completed)
-- Export System with multiple formats (Markdown, JSON, HTML, PDF, TXT, DOCX)
-- Custom templates (Standard, Obsidian, GitHub, Academic, Minimal)
-- Import support (JSON, Markdown, ChatGPT exports, Plain text)
-- Template engine with handlebars syntax
-- Bulk export/import operations
-- Data integrity preservation
-
-### 🚧 Phase 3 (Planned)
-- Advanced UI features
-- Settings page
-- Cross-device sync
-- Additional integrations
+### 🚧 Phase 4 (Planned)
+- Settings page and customization
+- Cross-device sync (optional)
+- Export improvements (Markdown, PDF, HTML)
+- Additional AI platform integrations
+- Themes and UI customization
 
 ## License
 

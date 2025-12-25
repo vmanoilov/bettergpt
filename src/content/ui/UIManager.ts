@@ -8,6 +8,7 @@
  */
 
 import { ChatPanel } from './ChatPanel';
+import { ConversationBrowser } from './ConversationBrowser';
 import type { ExtensionConfig } from '../types';
 
 // UI configuration constants
@@ -16,6 +17,7 @@ const MAX_Z_INDEX = 2147483647; // Maximum z-index value to ensure extension UI 
 export class UIManager {
   private config: ExtensionConfig;
   private chatPanel: ChatPanel | null = null;
+  private conversationBrowser: ConversationBrowser | null = null;
   private isVisible: boolean = false;
   private container: HTMLElement | null = null;
 
@@ -36,18 +38,19 @@ export class UIManager {
       position: fixed;
       top: 0;
       right: 0;
-      width: 400px;
+      width: 450px;
       height: 100vh;
       z-index: ${MAX_Z_INDEX};
       transform: translateX(100%);
       transition: transform 0.3s ease-in-out;
+      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
     `;
     
     document.body.appendChild(this.container);
 
-    // Initialize chat panel
-    this.chatPanel = new ChatPanel(this.container, this.config);
-    await this.chatPanel.initialize();
+    // Initialize conversation browser (new Phase 3 UI)
+    this.conversationBrowser = new ConversationBrowser(this.container);
+    await this.conversationBrowser.initialize();
 
     console.log('[UIManager] UI components initialized');
   }
@@ -120,6 +123,11 @@ export class UIManager {
     if (this.chatPanel) {
       this.chatPanel.destroy();
       this.chatPanel = null;
+    }
+
+    if (this.conversationBrowser) {
+      this.conversationBrowser.destroy();
+      this.conversationBrowser = null;
     }
 
     if (this.container) {

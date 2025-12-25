@@ -12,9 +12,13 @@ import { UIManager } from './ui/UIManager';
 import { chatGPTIntegration } from '../integrations/chatgpt';
 import { conversationManager } from '../managers/conversation-manager';
 import { folderManager } from '../managers/folder-manager';
+import { keyboardManager } from '../utils/keyboard';
+import { CommandPalette } from '../components/CommandPalette';
+import { themeManager } from '../utils/theme';
 
 // Global state
 let uiManager: UIManager | null = null;
+let commandPalette: CommandPalette | null = null;
 let isInitialized = false;
 
 /**
@@ -47,9 +51,23 @@ async function initialize(): Promise<void> {
         await chatGPTIntegration.initialize();
       }
       
+      // Initialize theme manager
+      await themeManager.setTheme(response.config.theme || 'system');
+      
       // Initialize UI Manager
       uiManager = new UIManager(response.config);
       await uiManager.initialize();
+      
+      // Initialize command palette
+      commandPalette = new CommandPalette({
+        onClose: () => {
+          keyboardManager.setEnabled(true);
+        }
+      });
+      await commandPalette.initialize();
+      
+      // Register keyboard shortcuts
+      registerKeyboardShortcuts();
       
       isInitialized = true;
       console.log('[BetterGPT Content] Initialization complete');
@@ -107,16 +125,58 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 /**
+ * Register keyboard shortcuts
+ */
+function registerKeyboardShortcuts(): void {
+  // Register Cmd/Ctrl+K for command palette
+  keyboardManager.register('command-palette', {
+    key: 'k',
+    ctrl: true,
+    meta: true,
+    description: 'Open command palette',
+    category: 'Global',
+    priority: 100,
+    handler: (event) => {
+      if (commandPalette) {
+        commandPalette.toggle();
+      }
+    }
+  });
+
+  // Register Ctrl+Shift+A for UI toggle
+  keyboardManager.register('toggle-ui', {
+    key: 'A',
+    ctrl: true,
+    shift: true,
+    description: 'Toggle main UI',
+    category: 'Global',
+    handler: (event) => {
+      if (uiManager) {
+        uiManager.toggle();
+      }
+    }
+  });
+
+  // Register Ctrl+Shift+S for sidebar toggle
+  keyboardManager.register('toggle-sidebar', {
+    key: 'S',
+    ctrl: true,
+    shift: true,
+    description: 'Toggle sidebar',
+    category: 'Global',
+    handler: (event) => {
+      chrome.runtime.sendMessage({ type: 'TOGGLE_SIDEBAR' }).catch(console.error);
+    }
+  });
+
+  console.log('[BetterGPT Content] Keyboard shortcuts registered');
+}
+
+/**
  * Handle keyboard shortcuts
  */
 document.addEventListener('keydown', (event) => {
-  // Check for Ctrl+Shift+A (default toggle shortcut)
-  if (event.ctrlKey && event.shiftKey && event.key === 'A') {
-    event.preventDefault();
-    if (uiManager) {
-      uiManager.toggle();
-    }
-  }
+  keyboardManager.handleKeyEvent(event);
 });
 
 /**
@@ -127,6 +187,10 @@ window.addEventListener('beforeunload', () => {
     uiManager.destroy();
   }
   
+  if (commandPalette) {
+    commandPalette.destroy();
+  }
+  
   // Cleanup ChatGPT integration
   if (isChatGPTPage()) {
     chatGPTIntegration.destroy();
@@ -135,6 +199,9 @@ window.addEventListener('beforeunload', () => {
   // Cleanup managers
   conversationManager.destroy();
   folderManager.destroy();
+  
+  // Clear keyboard shortcuts
+  keyboardManager.clear();
 });
 
 // Initialize when DOM is ready

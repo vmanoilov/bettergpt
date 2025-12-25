@@ -61,6 +61,30 @@ BetterGPT is a Chrome extension designed to provide an intelligent, context-awar
 - **Search**: Full-text search across conversations
 - **Import/Export**: Save and restore conversations
 
+## ✨ Phase 4 Features (Latest)
+
+### Export System
+- **Multiple Formats**: Markdown (.md), Plain Text (.txt), JSON (.json), HTML (.html), PDF (.pdf), DOCX (.docx)
+- **Markdown Templates**: Standard, Obsidian-compatible, GitHub-flavored
+- **PDF Templates**: Minimal, Academic, Dark modes
+- **Bulk Export**: Export multiple conversations at once
+- **Thread Preservation**: Maintain parent-child conversation relationships
+- **Data Integrity**: All metadata and conversation structure preserved
+
+### Import System
+- **Format Support**: JSON, Markdown with metadata, ChatGPT exports, Plain text
+- **Validation**: Automatic data validation and error handling
+- **ID Management**: Prevents conflicts with existing conversations
+- **Folder Preservation**: Optional folder structure maintenance
+
+### Custom Templates
+- **Template Engine**: Handlebars-style syntax for custom formatting
+- **Variables**: Access to title, model, messages, metadata, and more
+- **Built-in Library**: Pre-made templates for common formats
+- **User Templates**: Create and save custom export templates
+
+For detailed documentation, see [PHASE4_EXPORT_IMPORT.md](PHASE4_EXPORT_IMPORT.md).
+
 ## Core Philosophies
 
 1. **Privacy-First**: Your data and conversations remain secure. All data is stored locally in IndexedDB.
@@ -215,10 +239,18 @@ Change theme via:
 - CSS variable-based theming
 
 ### 🚧 Phase 6 (Planned)
+### ✅ Phase 4 (Completed)
+- Export System with multiple formats (Markdown, JSON, HTML, PDF, TXT, DOCX)
+- Custom templates (Standard, Obsidian, GitHub, Academic, Minimal)
+- Import support (JSON, Markdown, ChatGPT exports, Plain text)
+- Template engine with handlebars syntax
+- Bulk export/import operations
+- Data integrity preservation
+
+### 🚧 Phase 3 (Planned)
 - Advanced UI features
 - Settings page
 - Cross-device sync
-- Export/import improvements
 - Additional integrations
 
 ## License

@@ -12,6 +12,7 @@ import { UIManager } from './ui/UIManager';
 import { chatGPTIntegration } from '../integrations/chatgpt';
 import { conversationManager } from '../managers/conversation-manager';
 import { folderManager } from '../managers/folder-manager';
+import { exportManager } from '../managers/export-manager';
 
 // Global state
 let uiManager: UIManager | null = null;
@@ -40,6 +41,7 @@ async function initialize(): Promise<void> {
       // Initialize managers
       conversationManager.initialize();
       folderManager.initialize();
+      exportManager.initialize();
       
       // Initialize ChatGPT integration if on ChatGPT page
       if (isChatGPTPage()) {

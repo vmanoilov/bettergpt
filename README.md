@@ -1,5 +1,8 @@
 # BetterGPT - ChatGPT Enhanced
 
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/vmanoilov/bettergpt)
+
 ## Overview
 
 BetterGPT is a Chrome extension that supercharges ChatGPT with conversation management, search, export, and organization features. Inspired by Superpower ChatGPT, it observes and enhances your ChatGPT experience without replacing it.

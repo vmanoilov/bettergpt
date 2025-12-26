@@ -33,7 +33,6 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
-*.tmp
 
 # Testing
 coverage/

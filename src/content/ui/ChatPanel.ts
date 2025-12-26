@@ -15,6 +15,7 @@ export class ChatPanel {
   private config: ExtensionConfig;
   private panelElement: HTMLElement | null = null;
   private themeToggle: ThemeToggle | null = null;
+  private messagesContainer: HTMLElement | null = null;
 
   constructor(container: HTMLElement, config: ExtensionConfig) {
     this.container = container;
@@ -140,6 +141,7 @@ export class ChatPanel {
     `;
 
     container.appendChild(welcomeMessage);
+    this.messagesContainer = container;
 
     return container;
   }
@@ -222,8 +224,210 @@ export class ChatPanel {
 
     console.log('[ChatPanel] Sending message:', message);
 
-    // TODO: Implement actual message sending logic
-    // This will be connected to the AI service in future iterations
+    // Add user message to UI
+    this.addMessageToUI('user', message);
+
+    // Create loading indicator
+    const loadingId = this.addLoadingIndicator();
+
+    try {
+      // Get page context
+      const context = this.getPageContext();
+
+      // Send message to background service worker
+      const response = await chrome.runtime.sendMessage({
+        type: 'AI_REQUEST',
+        payload: {
+          message: message,
+          context: context,
+        },
+      });
+
+      // Remove loading indicator
+      this.removeLoadingIndicator(loadingId);
+
+      if (response.success) {
+        // Add AI response to UI
+        this.addMessageToUI('assistant', response.result);
+      } else {
+        // Show error message
+        this.addErrorMessage(response.error || 'Unknown error occurred');
+      }
+    } catch (error) {
+      // Remove loading indicator
+      this.removeLoadingIndicator(loadingId);
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[ChatPanel] Error sending message:', errorMessage);
+      this.addErrorMessage(errorMessage);
+    }
+  }
+
+  /**
+   * Add a message to the UI
+   */
+  private addMessageToUI(role: 'user' | 'assistant', content: string): void {
+    if (!this.messagesContainer) return;
+
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      ${role === 'user' 
+        ? 'background: var(--color-primary, #007bff); color: white; margin-left: 20%;'
+        : 'background: var(--color-surface, #f5f5f5); color: var(--color-text, #333); margin-right: 20%;'
+      }
+    `;
+
+    const roleLabel = document.createElement('div');
+    roleLabel.style.cssText = `
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    `;
+    roleLabel.textContent = role === 'user' ? 'You' : 'AI Assistant';
+
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = `
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.5;
+    `;
+    contentDiv.textContent = content;
+
+    messageDiv.appendChild(roleLabel);
+    messageDiv.appendChild(contentDiv);
+    this.messagesContainer.appendChild(messageDiv);
+
+    // Scroll to bottom
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+
+  /**
+   * Add loading indicator
+   */
+  private addLoadingIndicator(): string {
+    if (!this.messagesContainer) return '';
+
+    const loadingId = `loading-${Date.now()}`;
+    const loadingDiv = document.createElement('div');
+    loadingDiv.id = loadingId;
+    loadingDiv.style.cssText = `
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--color-surface, #f5f5f5);
+      color: var(--color-text, #333);
+      margin-right: 20%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+
+    const spinner = document.createElement('div');
+    spinner.style.cssText = `
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--color-border, #ddd);
+      border-top-color: var(--color-primary, #007bff);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    `;
+
+    const text = document.createElement('span');
+    text.textContent = 'Thinking...';
+    text.style.fontSize = '14px';
+
+    loadingDiv.appendChild(spinner);
+    loadingDiv.appendChild(text);
+    this.messagesContainer.appendChild(loadingDiv);
+
+    // Add keyframe animation
+    if (!document.getElementById('bettergpt-spin-animation')) {
+      const style = document.createElement('style');
+      style.id = 'bettergpt-spin-animation';
+      style.textContent = `
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Scroll to bottom
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+
+    return loadingId;
+  }
+
+  /**
+   * Remove loading indicator
+   */
+  private removeLoadingIndicator(loadingId: string): void {
+    if (!this.messagesContainer) return;
+    
+    const loadingDiv = document.getElementById(loadingId);
+    if (loadingDiv) {
+      loadingDiv.remove();
+    }
+  }
+
+  /**
+   * Add error message to UI
+   */
+  private addErrorMessage(error: string): void {
+    if (!this.messagesContainer) return;
+
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      margin-bottom: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      background: var(--color-error, #dc3545);
+      color: white;
+      margin-right: 20%;
+    `;
+
+    const title = document.createElement('div');
+    title.style.cssText = `
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    `;
+    title.textContent = 'Error';
+
+    const message = document.createElement('div');
+    message.style.cssText = `
+      font-size: 14px;
+      line-height: 1.5;
+    `;
+    message.textContent = error;
+
+    errorDiv.appendChild(title);
+    errorDiv.appendChild(message);
+    this.messagesContainer.appendChild(errorDiv);
+
+    // Scroll to bottom
+    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+  }
+
+  /**
+   * Get page context (selected text, URL, etc.)
+   */
+  private getPageContext(): string {
+    const url = window.location.href;
+    const title = document.title;
+    const selectedText = window.getSelection()?.toString() || '';
+
+    let context = `Current Page: ${title}\nURL: ${url}`;
+    
+    if (selectedText) {
+      context += `\n\nSelected Text:\n${selectedText}`;
+    }
+
+    return context;
   }
 
   /**
@@ -238,6 +442,26 @@ export class ChatPanel {
    */
   onHide(): void {
     console.log('[ChatPanel] Panel hidden');
+  }
+
+  /**
+   * Show panel
+   */
+  show(): void {
+    if (this.panelElement) {
+      this.panelElement.style.display = 'flex';
+    }
+    this.onShow();
+  }
+
+  /**
+   * Hide panel
+   */
+  hide(): void {
+    if (this.panelElement) {
+      this.panelElement.style.display = 'none';
+    }
+    this.onHide();
   }
 
   /**

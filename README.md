@@ -150,11 +150,10 @@ bettergpt/
    - Click "Load unpacked"
    - Select the `dist/` folder
 
-5. **Test it out**
-   - Open `test-page.html` for basic testing
-   - Visit https://chat.openai.com to test ChatGPT integration
-   - Press `Ctrl+Shift+A` to toggle the main UI
-   - Press `Ctrl+Shift+S` to toggle the ChatGPT sidebar
+5. **Configure and test**
+   - Press `Ctrl+Shift+A` to open the extension
+   - Go to Settings tab and configure a provider
+   - See [MANUAL_TESTING_GUIDE.md](MANUAL_TESTING_GUIDE.md) for complete testing instructions
 
 ### Development Workflow
 
@@ -169,10 +168,50 @@ For detailed development information, see [DEVELOPMENT.md](DEVELOPMENT.md).
 
 ## Usage
 
+### First-Time Setup
+
+1. **Load the Extension**
+   - After building, the extension will initialize with a default OpenAI provider (disabled)
+   - Open the extension by pressing `Ctrl+Shift+A`
+
+2. **Configure AI Provider**
+   - Click on the **Settings** tab (⚙️) in the extension UI
+   - Find your AI provider in the list
+   - Click **Edit** to configure:
+     - **OpenAI**: Add your API key from https://platform.openai.com/api-keys
+     - **Local Proxy**: Set your local endpoint URL (e.g., http://localhost:1234/v1/chat/completions)
+     - **OpenAI-Compatible**: Configure custom endpoint and API key
+   - Click **Enable** to activate the provider
+   - The provider is now ready to use!
+
+3. **Start Chatting**
+   - Switch to the **Chat** tab (💬)
+   - Type your message and press Send
+   - The AI will respond based on your configured provider
+
 ### Keyboard Shortcuts
 - `Cmd/Ctrl+K` - Open Command Palette
 - `Ctrl+Shift+A` - Toggle main BetterGPT UI
 - `Ctrl+Shift+S` - Toggle ChatGPT sidebar (when on ChatGPT)
+
+### AI Providers
+
+BetterGPT supports multiple AI provider types:
+
+**OpenAI**
+- Official OpenAI API
+- Requires API key from https://platform.openai.com/api-keys
+- Supports GPT-3.5-turbo, GPT-4, and other models
+
+**Local Proxy**
+- Connect to local AI servers (e.g., LM Studio, Ollama, LocalAI)
+- No API key required for most local setups
+- Configure the endpoint URL (usually http://localhost:PORT/v1/chat/completions)
+
+**OpenAI-Compatible**
+- Third-party services that use OpenAI-compatible APIs
+- Examples: Azure OpenAI, Anthropic Claude (via proxy), custom deployments
+- Configure both endpoint and API key
 
 ### Command Palette
 The command palette provides quick access to all extension features:
@@ -196,15 +235,15 @@ BetterGPT supports three theme modes:
 - **System**: Automatically follow OS preference (default)
 
 Change theme via:
-- Command Palette (`Cmd/Ctrl+K` → "Toggle Theme")
+- Settings tab in the extension UI
 - Theme toggle button in UI header (sun/moon icon)
 
 ### Features
-1. **Automatic Conversation Capture**: Simply use ChatGPT normally, and BetterGPT will automatically save your conversations
-2. **Organize with Folders**: Create folders and organize your conversations
-3. **Search**: Quickly find conversations using full-text search
-4. **Archive & Favorite**: Keep your workspace clean by archiving old conversations or marking important ones as favorites
-5. **Bulk Operations**: Select multiple conversations for batch operations
+1. **Pluggable AI Providers**: Choose from OpenAI, local proxies, or OpenAI-compatible services
+2. **Context-Aware**: Automatically includes page URL, title, and selected text in requests
+3. **Conversation Management**: Save, search, and organize your AI conversations
+4. **Real-Time Responses**: See AI responses with loading indicators
+5. **Error Handling**: Clear error messages help troubleshoot configuration issues
 
 ## Project Status
 
@@ -226,14 +265,17 @@ Change theme via:
 
 ## Known Issues
 
-### Critical: Export Functionality Temporarily Disabled
+### Export Functionality Status
 
-The export-manager.ts file has a persistent build error with esbuild/TypeScript template literal parsing. A temporary stub implementation is in place to allow the extension to build. Full export functionality will be restored once this issue is resolved.
+The export-manager.ts has a fully functional implementation for exporting conversations in multiple formats (Markdown, JSON, HTML, PDF, RTF). All export functionality is working as expected.
 
-- **Status**: Under investigation
-- **Impact**: Export features are non-functional
-- **Workaround**: Stub implementation allows other features to work normally
-- **Details**: See [PHASE6_FINAL_REPORT.md](PHASE6_FINAL_REPORT.md) for complete analysis
+### Configuration Notes
+
+- **API Keys**: Stored securely in chrome.storage.local (encrypted by Chrome)
+- **Local Proxies**: Most local AI servers don't require API keys
+- **Provider Settings**: Saved automatically when modified
+
+For issues or questions, see [SUPPORT.md](SUPPORT.md).
 
 ## License
 

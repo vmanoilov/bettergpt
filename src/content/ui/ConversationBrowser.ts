@@ -435,6 +435,20 @@ export class ConversationBrowser {
   }
 
   /**
+   * Show the browser
+   */
+  show(): void {
+    this.container.style.display = 'flex';
+  }
+
+  /**
+   * Hide the browser
+   */
+  hide(): void {
+    this.container.style.display = 'none';
+  }
+
+  /**
    * Destroy the browser
    */
   destroy(): void {

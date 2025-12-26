@@ -4,16 +4,32 @@
  * This service worker handles:
  * - Extension lifecycle events
  * - Message passing between content scripts and extension
- * - Background tasks and API calls
+ * - AI request processing with real providers
  * - State management across extension components
  */
 
-import type { AIRequestPayload, AIResponseMessage, ConfigResponse } from '../content/types';
+import type {
+  AIRequestPayload,
+  AIResponseMessage,
+  ConfigResponse,
+  PageContext,
+  BaseMessageResponse,
+} from '../content/types';
 import { db } from '@lib/db';
+import { AIProviderManager, AIProviderError } from '@lib/ai';
+import type { AIStreamChunk } from '@lib/ai';
+
+// Initialize provider manager
+const providerManager = AIProviderManager.getInstance();
 
 // Initialize database when service worker starts
 db.open().catch((error) => {
   console.error('[BetterGPT] Failed to open database:', error);
+});
+
+// Load providers when service worker starts
+providerManager.loadFromStorage().catch((error) => {
+  console.error('[BetterGPT] Failed to load providers:', error);
 });
 
 // Extension installation/update handler
@@ -50,8 +66,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true; // Indicates async response
 
     case 'AI_REQUEST':
-      handleAIRequest(message.payload, sendResponse);
+      handleAIRequest(message.payload, sendResponse, sender);
       return true; // Indicates async response
+
+    case 'GET_PAGE_CONTEXT':
+      // This is handled by content script, just acknowledge
+      sendResponse({ success: true });
+      break;
+
+    case 'GET_CONVERSATIONS':
+      handleGetConversations(sendResponse);
+      return true;
+
+    case 'GET_CONVERSATION':
+      handleGetConversation(message.conversationId, sendResponse);
+      return true;
+
+    case 'DELETE_CONVERSATION':
+      handleDeleteConversation(message.conversationId, sendResponse);
+      return true;
 
     default:
       console.warn('[BetterGPT] Unknown message type:', message.type);
@@ -130,20 +163,249 @@ async function handleGetConfig(sendResponse: (response: ConfigResponse) => void)
  */
 async function handleAIRequest(
   payload: AIRequestPayload,
-  sendResponse: (response: AIResponseMessage) => void
+  sendResponse: (response: AIResponseMessage) => void,
+  sender?: chrome.runtime.MessageSender
 ): Promise<void> {
   try {
     console.log('[BetterGPT] Processing AI request:', payload);
 
-    // TODO: Implement actual AI request logic
-    // This is a placeholder for future implementation
+    // Get active AI provider
+    const provider = providerManager.createProviderInstance();
+    if (!provider) {
+      sendResponse({
+        success: false,
+        error: 'No AI provider configured. Please configure a provider in settings.',
+      });
+      return;
+    }
 
-    sendResponse({
-      success: true,
-      result: 'AI request processing not yet implemented',
+    // Create or get conversation
+    let conversationId = payload.conversationId;
+    if (!conversationId) {
+      conversationId = await db.conversations.add({
+        title: payload.message.substring(0, 50) + (payload.message.length > 50 ? '...' : ''),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastMessageAt: new Date(),
+      });
+    } else {
+      // Update conversation
+      await db.conversations.update(conversationId, {
+        updatedAt: new Date(),
+        lastMessageAt: new Date(),
+      });
+    }
+
+    // Save user message
+    await db.messages.add({
+      conversationId,
+      role: 'user',
+      content: payload.message,
+      timestamp: new Date(),
+      metadata: payload.context ? { context: payload.context } : undefined,
     });
+
+    // Build messages array for AI
+    const messages = await db.messages
+      .where('conversationId')
+      .equals(conversationId)
+      .sortBy('timestamp');
+
+    const aiMessages = messages.map((msg) => ({
+      role: msg.role as 'system' | 'user' | 'assistant',
+      content: msg.content,
+    }));
+
+    // Add system message if there's page context
+    if (payload.context) {
+      const contextMessage = buildContextMessage(payload.context);
+      aiMessages.unshift({
+        role: 'system',
+        content: contextMessage,
+      });
+    }
+
+    // Handle streaming vs non-streaming
+    if (payload.stream && sender?.tab?.id) {
+      // Streaming response
+      const tabId = sender.tab.id;
+      let assistantContent = '';
+      const assistantMessageId = await db.messages.add({
+        conversationId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+      });
+
+      try {
+        await provider.sendStreamRequest(
+          { messages: aiMessages, stream: true },
+          async (chunk: AIStreamChunk) => {
+            if (!chunk.done && chunk.content) {
+              assistantContent += chunk.content;
+
+              // Send chunk to content script
+              chrome.tabs.sendMessage(tabId, {
+                type: 'AI_STREAM_CHUNK',
+                chunk: chunk.content,
+                done: false,
+                conversationId,
+                messageId: assistantMessageId,
+              });
+
+              // Update message in database periodically
+              await db.messages.update(assistantMessageId, {
+                content: assistantContent,
+              });
+            } else if (chunk.done) {
+              // Final update
+              await db.messages.update(assistantMessageId, {
+                content: assistantContent,
+              });
+
+              // Send done signal
+              chrome.tabs.sendMessage(tabId, {
+                type: 'AI_STREAM_CHUNK',
+                chunk: '',
+                done: true,
+                conversationId,
+                messageId: assistantMessageId,
+              });
+            }
+          }
+        );
+
+        sendResponse({
+          success: true,
+          conversationId,
+          messageId: assistantMessageId,
+          streaming: true,
+        });
+      } catch (error) {
+        // Clean up failed message
+        await db.messages.delete(assistantMessageId);
+        throw error;
+      }
+    } else {
+      // Non-streaming response
+      const response = await provider.sendRequest({
+        messages: aiMessages,
+        stream: false,
+      });
+
+      // Save assistant message
+      const assistantMessageId = await db.messages.add({
+        conversationId,
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date(),
+        metadata: response.usage ? { usage: response.usage } : undefined,
+      });
+
+      sendResponse({
+        success: true,
+        result: response.content,
+        conversationId,
+        messageId: assistantMessageId,
+      });
+    }
   } catch (error) {
     console.error('[BetterGPT] Error processing AI request:', error);
+
+    if (error instanceof AIProviderError) {
+      sendResponse({
+        success: false,
+        error: `AI Provider Error: ${error.message}`,
+      });
+    } else {
+      sendResponse({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to process AI request',
+      });
+    }
+  }
+}
+
+/**
+ * Build context message from page context
+ */
+function buildContextMessage(context: PageContext): string {
+  let message = 'You are an AI assistant helping the user with their web browsing.\n\n';
+  message += `Current page: ${context.title}\n`;
+  message += `URL: ${context.url}\n`;
+
+  if (context.selectedText) {
+    message += `\nUser has selected the following text:\n---\n${context.selectedText}\n---\n`;
+  }
+
+  if (context.domContext) {
+    message += `\nAdditional context from the page:\n${context.domContext}\n`;
+  }
+
+  return message;
+}
+
+/**
+ * Handle get conversations request
+ */
+async function handleGetConversations(
+  sendResponse: (response: BaseMessageResponse & { conversations?: unknown[] }) => void
+): Promise<void> {
+  try {
+    const conversations = await db.conversations.orderBy('lastMessageAt').reverse().toArray();
+
+    sendResponse({ success: true, conversations });
+  } catch (error) {
+    console.error('[BetterGPT] Error getting conversations:', error);
+    sendResponse({ success: false, error: String(error) });
+  }
+}
+
+/**
+ * Handle get conversation request
+ */
+async function handleGetConversation(
+  conversationId: number,
+  sendResponse: (
+    response: BaseMessageResponse & { conversation?: unknown; messages?: unknown[] }
+  ) => void
+): Promise<void> {
+  try {
+    const conversation = await db.conversations.get(conversationId);
+    if (!conversation) {
+      sendResponse({ success: false, error: 'Conversation not found' });
+      return;
+    }
+
+    const messages = await db.messages
+      .where('conversationId')
+      .equals(conversationId)
+      .sortBy('timestamp');
+
+    sendResponse({ success: true, conversation, messages });
+  } catch (error) {
+    console.error('[BetterGPT] Error getting conversation:', error);
+    sendResponse({ success: false, error: String(error) });
+  }
+}
+
+/**
+ * Handle delete conversation request
+ */
+async function handleDeleteConversation(
+  conversationId: number,
+  sendResponse: (response: BaseMessageResponse) => void
+): Promise<void> {
+  try {
+    // Delete all messages in the conversation
+    await db.messages.where('conversationId').equals(conversationId).delete();
+
+    // Delete the conversation
+    await db.conversations.delete(conversationId);
+
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('[BetterGPT] Error deleting conversation:', error);
     sendResponse({ success: false, error: String(error) });
   }
 }

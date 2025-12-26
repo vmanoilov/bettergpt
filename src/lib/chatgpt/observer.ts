@@ -66,7 +66,7 @@ export class ChatGPTObserver {
    * Get current conversation ID from URL
    */
   private updateConversationId(): void {
-    const match = window.location.pathname.match(/\/c\/([a-f0-9-]+)/);
+    const match = window.location.pathname.match(/\/c\/([a-fA-F0-9-]+)/);
     const newId = match ? match[1] : 'default';
 
     if (newId !== this.conversationId) {

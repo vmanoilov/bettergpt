@@ -29,7 +29,7 @@ enum LogLevel {
  * Production-ready logging utility
  */
 class Logger {
-  private static isProduction = process.env.NODE_ENV === 'production';
+  private static isProduction = false; // Set by build process or runtime check
 
   static log(level: LogLevel, message: string, ...args: unknown[]): void {
     const timestamp = new Date().toISOString();
@@ -72,7 +72,7 @@ class Logger {
 }
 
 // Service worker lifecycle management
-let keepAliveInterval: number | null = null;
+let keepAliveInterval: ReturnType<typeof setInterval> | null = null;
 
 /**
  * Keep service worker alive during long-running operations
@@ -85,7 +85,7 @@ function keepServiceWorkerAlive(): void {
   keepAliveInterval = setInterval(() => {
     Logger.debug('Keep-alive ping');
     // Keep worker alive by maintaining activity
-  }, 20000) as unknown as number; // Every 20 seconds
+  }, 20000); // Every 20 seconds
 
   // Clear after timeout
   setTimeout(() => {
@@ -337,7 +337,7 @@ async function handleAIRequest(
       temperature: 0.7,
     };
     
-    Logger.debug('Sending request to OpenAI API:', { model: requestBody.model, messageCount: messages.length });
+    Logger.debug('Sending request to OpenAI API');
     
     // Make API request
     const response = await fetch(OPENAI_API_URL, {
@@ -365,7 +365,6 @@ async function handleAIRequest(
     
     const aiResponse = data.choices[0].message.content;
     Logger.info('AI request completed successfully');
-    Logger.debug('Response preview:', aiResponse.substring(0, 100));
     
     sendResponse({
       success: true,

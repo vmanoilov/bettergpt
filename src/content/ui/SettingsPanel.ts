@@ -6,12 +6,14 @@
 
 import type { ExtensionConfig } from '../content/types';
 import type { ProviderConfig } from '../providers/base-provider';
+import { ProviderModal } from '../../components/ProviderModal';
 
 export class SettingsPanel {
   private container: HTMLElement;
   private config: ExtensionConfig;
   private panelElement: HTMLElement | null = null;
   private providers: ProviderConfig[] = [];
+  private modal: ProviderModal = new ProviderModal();
 
   constructor(container: HTMLElement, config: ExtensionConfig) {
     this.container = container;
@@ -334,16 +336,53 @@ export class SettingsPanel {
    * Show add provider dialog
    */
   private showAddProviderDialog(): void {
-    alert('Add provider dialog - To be implemented with a proper modal');
-    // TODO: Implement modal dialog for adding providers
+    this.modal.showAddProvider(
+      async (config) => {
+        await this.saveProvider(config);
+      },
+      () => {
+        console.log('[SettingsPanel] Add provider cancelled');
+      }
+    );
   }
 
   /**
    * Edit provider
    */
   private editProvider(provider: ProviderConfig): void {
-    alert(`Edit provider: ${provider.name} - To be implemented with a proper modal`);
-    // TODO: Implement modal dialog for editing providers
+    this.modal.showEditProvider(
+      provider,
+      async (config) => {
+        await this.saveProvider(config);
+      },
+      () => {
+        console.log('[SettingsPanel] Edit provider cancelled');
+      }
+    );
+  }
+
+  /**
+   * Save provider configuration
+   */
+  private async saveProvider(config: ProviderConfig): Promise<void> {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'UPDATE_PROVIDER',
+        providerId: config.id,
+        providerConfig: config,
+      });
+
+      if (response.success) {
+        // Reload providers and refresh UI
+        await this.loadProviders();
+        await this.refreshContent();
+      } else {
+        alert(`Error saving provider: ${response.error}`);
+      }
+    } catch (error) {
+      console.error('[SettingsPanel] Error saving provider:', error);
+      alert(`Error saving provider: ${error}`);
+    }
   }
 
   /**
@@ -363,19 +402,25 @@ export class SettingsPanel {
       });
 
       if (response.success) {
-        // Reload providers
+        // Reload providers and refresh UI
         await this.loadProviders();
-        // Refresh UI
-        const content = await this.createContent();
-        if (this.panelElement) {
-          const oldContent = this.panelElement.querySelector('div:last-child');
-          if (oldContent) {
-            this.panelElement.replaceChild(content, oldContent);
-          }
-        }
+        await this.refreshContent();
       }
     } catch (error) {
       console.error('[SettingsPanel] Error toggling provider:', error);
+    }
+  }
+
+  /**
+   * Refresh content
+   */
+  private async refreshContent(): Promise<void> {
+    const content = await this.createContent();
+    if (this.panelElement) {
+      const oldContent = this.panelElement.querySelector('div:last-child');
+      if (oldContent) {
+        this.panelElement.replaceChild(content, oldContent);
+      }
     }
   }
 

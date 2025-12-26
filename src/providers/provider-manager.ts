@@ -56,12 +56,20 @@ export class ProviderManager {
   }
 
   /**
-   * Update provider configuration
+   * Update provider configuration or add new provider
    */
   async updateProvider(providerId: string, config: Partial<ProviderConfig>): Promise<void> {
-    const provider = this.providers.get(providerId);
+    let provider = this.providers.get(providerId);
+    
     if (!provider) {
-      throw new Error(`Provider not found: ${providerId}`);
+      // If provider doesn't exist and we have a full config, create it
+      if (config.id && config.name && config.type !== undefined && config.enabled !== undefined) {
+        await this.registerProvider(config as ProviderConfig);
+        console.log('[ProviderManager] Created new provider:', providerId);
+        return;
+      } else {
+        throw new Error(`Provider not found and incomplete config provided: ${providerId}`);
+      }
     }
 
     provider.updateConfig(config);

@@ -17,7 +17,7 @@ import type {
 } from '../content/types';
 import { db } from '@lib/db';
 import { AIProviderManager, AIProviderError } from '@lib/ai';
-import type { AIStreamChunk } from '@lib/ai';
+import type { AIStreamChunk, AIProviderConfig } from '@lib/ai';
 
 // Initialize provider manager
 const providerManager = AIProviderManager.getInstance();
@@ -84,6 +84,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'DELETE_CONVERSATION':
       handleDeleteConversation(message.conversationId, sendResponse);
+      return true;
+
+    case 'GET_PROVIDERS':
+      handleGetProviders(sendResponse);
+      return true;
+
+    case 'SAVE_PROVIDER':
+      handleSaveProvider(message.provider, sendResponse);
+      return true;
+
+    case 'DELETE_PROVIDER':
+      handleDeleteProvider(message.providerId, sendResponse);
+      return true;
+
+    case 'SET_ACTIVE_PROVIDER':
+      handleSetActiveProvider(message.providerId, sendResponse);
+      return true;
+
+    case 'TEST_PROVIDER':
+      handleTestProvider(message.providerId, sendResponse);
       return true;
 
     default:
@@ -406,6 +426,103 @@ async function handleDeleteConversation(
     sendResponse({ success: true });
   } catch (error) {
     console.error('[BetterGPT] Error deleting conversation:', error);
+    sendResponse({ success: false, error: String(error) });
+  }
+}
+
+/**
+ * Handle get providers request
+ */
+async function handleGetProviders(
+  sendResponse: (
+    response: BaseMessageResponse & { providers?: unknown[]; activeProviderId?: string | null }
+  ) => void
+): Promise<void> {
+  try {
+    await providerManager.loadFromStorage();
+    const providers = providerManager.getProviders();
+    const activeProvider = providerManager.getActiveProvider();
+
+    sendResponse({
+      success: true,
+      providers,
+      activeProviderId: activeProvider?.id || null,
+    });
+  } catch (error) {
+    console.error('[BetterGPT] Error getting providers:', error);
+    sendResponse({ success: false, error: String(error) });
+  }
+}
+
+/**
+ * Handle save provider request
+ */
+async function handleSaveProvider(
+  provider: AIProviderConfig,
+  sendResponse: (response: BaseMessageResponse) => void
+): Promise<void> {
+  try {
+    await providerManager.addOrUpdateProvider(provider);
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('[BetterGPT] Error saving provider:', error);
+    sendResponse({ success: false, error: String(error) });
+  }
+}
+
+/**
+ * Handle delete provider request
+ */
+async function handleDeleteProvider(
+  providerId: string,
+  sendResponse: (response: BaseMessageResponse) => void
+): Promise<void> {
+  try {
+    await providerManager.removeProvider(providerId);
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('[BetterGPT] Error deleting provider:', error);
+    sendResponse({ success: false, error: String(error) });
+  }
+}
+
+/**
+ * Handle set active provider request
+ */
+async function handleSetActiveProvider(
+  providerId: string,
+  sendResponse: (response: BaseMessageResponse) => void
+): Promise<void> {
+  try {
+    await providerManager.setActiveProvider(providerId);
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('[BetterGPT] Error setting active provider:', error);
+    sendResponse({ success: false, error: String(error) });
+  }
+}
+
+/**
+ * Handle test provider request
+ */
+async function handleTestProvider(
+  providerId: string,
+  sendResponse: (response: BaseMessageResponse) => void
+): Promise<void> {
+  try {
+    const provider = providerManager.createProviderInstance(providerId);
+    if (!provider) {
+      sendResponse({ success: false, error: 'Provider not found' });
+      return;
+    }
+
+    const result = await provider.testConnection();
+    sendResponse({
+      success: result,
+      error: result ? undefined : 'Connection test failed',
+    });
+  } catch (error) {
+    console.error('[BetterGPT] Error testing provider:', error);
     sendResponse({ success: false, error: String(error) });
   }
 }

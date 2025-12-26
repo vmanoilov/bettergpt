@@ -1,214 +1,271 @@
-# BetterGPT - Personal AI Assistant Chrome Extension
+# BetterGPT - ChatGPT Enhanced
 
 ## Overview
 
-BetterGPT is a production-ready Chrome extension that provides an intelligent, context-aware AI assistant directly within your browser. Built with modern web technologies, it seamlessly integrates AI capabilities into your browsing experience.
+BetterGPT is a Chrome extension that supercharges ChatGPT with conversation management, search, export, and organization features. Inspired by Superpower ChatGPT, it observes and enhances your ChatGPT experience without replacing it.
 
-## 🎉 Status: Production Ready! ✅
+## 🎯 What It Does
 
-The extension is now fully functional with end-to-end AI integration, streaming responses, conversation management, and a complete settings UI.
+BetterGPT **augments** the ChatGPT web interface - it doesn't implement its own AI. Instead, it:
+
+- **Observes** ChatGPT conversations in real-time
+- **Captures** user prompts and assistant responses  
+- **Stores** everything locally in your browser (IndexedDB)
+- **Enhances** ChatGPT with powerful organization tools
 
 ## ✨ Features
 
-### Core Functionality
-- ✅ **Real AI Integration** - Connect to OpenAI, local Ollama, or any OpenAI-compatible API
-- ✅ **Streaming Responses** - Real-time AI responses with animated streaming indicator
-- ✅ **Context-Aware** - Automatically captures selected text, page URL, and metadata
-- ✅ **Conversation History** - All conversations stored locally in IndexedDB
-- ✅ **Export Conversations** - Export as JSON or Markdown
-- ✅ **Multiple Providers** - Configure and switch between different AI providers
-- ✅ **Privacy-First** - All data stored locally, no telemetry
+### Conversation Capture
+- ✅ Automatically detects and saves ChatGPT conversations
+- ✅ Monitors DOM for new messages via MutationObserver
+- ✅ Handles streaming responses correctly
+- ✅ Works across page navigations
 
-### User Interface
-- ✅ **Slide-in Panel** - Elegant UI that doesn't disrupt browsing
-- ✅ **Settings Panel** - Easy provider configuration with test connection
-- ✅ **History Panel** - Browse and search past conversations
-- ✅ **Keyboard Shortcut** - Quick access with **Ctrl+Shift+A** (Cmd+Shift+A on Mac)
+### Sidebar
+- ✅ Browse all captured conversations
+- ✅ Search through chat history
+- ✅ Filter by folders/tags
+- ✅ Export conversations (Markdown/JSON)
+- ✅ Quick actions (pin, delete, export)
+- ✅ Toggle with **Ctrl+B** (Cmd+B on Mac)
 
-## Quick Start
+### Command Palette
+- ✅ Quick access with **Ctrl+K** (Cmd+K on Mac)
+- ✅ Keyboard navigation
+- ✅ Search conversations
+- ✅ Jump to specific messages
+- ✅ Export and organize
 
-### Installation
+### Local-Only Storage
+- ✅ All data stored in IndexedDB
+- ✅ No external servers
+- ✅ Complete privacy
+- ✅ Works offline
 
-1. **Clone and build:**
-   ```bash
-   git clone https://github.com/vmanoilov/bettergpt.git
-   cd bettergpt
-   npm install
-   npm run build
-   ```
+## 🚀 Installation
 
-2. **Load in Chrome:**
-   - Open Chrome and navigate to `chrome://extensions/`
-   - Enable "Developer mode" (toggle in top-right corner)
-   - Click "Load unpacked"
-   - Select the `dist/` directory from the project
-
-### Configuration
-
-1. **Open Settings:**
-   - Press **Ctrl+Shift+A** to open the extension
-   - Click the "⚙️ Settings" button at the bottom
-
-2. **Add AI Provider:**
-   
-   **For OpenAI:**
-   - Click "Add Provider"
-   - Name: "My OpenAI"
-   - Type: OpenAI
-   - API URL: `https://api.openai.com`
-   - API Key: Your OpenAI API key from https://platform.openai.com/api-keys
-   - Model: `gpt-3.5-turbo` or `gpt-4`
-   - Click "Add Provider"
-   - Click "Activate" to set as active
-
-   **For Local Ollama:**
-   - Install Ollama from https://ollama.ai
-   - Run `ollama serve` in terminal
-   - In BetterGPT: Click "Add Provider"
-   - Name: "Local Ollama"
-   - Type: Local
-   - API URL: `http://localhost:11434`
-   - API Key: (leave empty)
-   - Model: `llama2` (or your installed model)
-   - Click "Add Provider" and "Activate"
-
-3. **Test Connection:**
-   - Click "Test" button next to your provider
-   - Verify "Connection successful!" message
-
-### Usage
-
-1. **Start Chatting:**
-   - Navigate to any webpage
-   - Select text you want to ask about (optional)
-   - Press **Ctrl+Shift+A** (Cmd+Shift+A on Mac)
-   - Type your message in the input field
-   - Press Enter or click "Send"
-
-2. **View History:**
-   - Click "📜 History" button at the bottom
-   - Click any conversation to continue it
-   - Use export buttons (📄 Markdown, 💾 JSON) to save conversations
-
-3. **New Conversation:**
-   - Click "New Chat" button in the header
-   - Or close and reopen the panel
-
-## Technology Stack
-
-- **Framework**: Svelte 4 with TypeScript
-- **Build System**: Vite 5
-- **Styling**: Tailwind CSS 3 with custom design tokens
-- **Database**: DexieJS (IndexedDB wrapper)
-- **Search**: Fuse.js for fuzzy search
-- **AI**: Pluggable provider system (OpenAI-compatible)
-- **Code Quality**: ESLint, Prettier
-- **Platform**: Chrome Extension (Manifest V3)
-
-## Project Structure
-
-```
-bettergpt/
-├── src/
-│   ├── background/              # Background service worker
-│   │   └── service-worker.ts    # AI request handling, provider management
-│   ├── content/                 # Content scripts
-│   │   ├── main.ts             # Entry point, UI injection
-│   │   ├── context.ts          # Page context capture
-│   │   └── types.ts            # Type definitions
-│   ├── components/             # Svelte components
-│   │   ├── App.svelte          # Main container with navigation
-│   │   ├── ChatPanel.svelte    # Chat interface
-│   │   ├── Settings.svelte     # Provider configuration
-│   │   └── History.svelte      # Conversation history
-│   ├── lib/                    # Shared libraries
-│   │   ├── ai/                # AI provider system
-│   │   ├── db/                # Database layer (DexieJS)
-│   │   ├── search/            # Search functionality (Fuse.js)
-│   │   └── utils/             # Utility functions
-│   ├── stores/                # Svelte stores
-│   └── styles/                # Tailwind CSS
-├── icons/                      # Extension icons
-├── dist/                       # Build output (generated)
-└── manifest.json              # Chrome extension manifest
-```
-
-## Development
-
-### Commands
+### Build from Source
 
 ```bash
-npm install          # Install dependencies
-npm run dev          # Start development with hot-reload
-npm run build        # Build for production
-npm run lint         # Check code quality
-npm run lint:fix     # Auto-fix linting issues
-npm run format       # Format code
-npm run type-check   # TypeScript type checking
+# Clone repository
+git clone https://github.com/vmanoilov/bettergpt.git
+cd bettergpt
+
+# Install dependencies
+npm install
+
+# Build extension
+npm run build
 ```
 
-### Development Workflow
+### Load in Chrome
 
-1. **Start dev mode:**
-   ```bash
-   npm run dev
-   ```
+1. Build the extension (see above)
+2. Open Chrome: `chrome://extensions/`
+3. Enable "Developer mode" (toggle in top-right)
+4. Click "Load unpacked"
+5. Select the `dist/` directory
 
-2. **Make changes to source files**
+## 💡 Usage
 
-3. **Refresh extension:**
-   - Go to `chrome://extensions/`
-   - Click refresh icon on BetterGPT extension
+### First Time Setup
 
-### Adding Custom AI Providers
+1. **Navigate to ChatGPT**: Go to https://chat.openai.com or https://chatgpt.com
+2. **Look for the toggle button**: You'll see a floating button in the top-right
+3. **Start chatting**: BetterGPT automatically captures your conversations
 
-The extension supports any OpenAI-compatible API. Examples:
+### Keyboard Shortcuts
 
-- **OpenRouter**: Use `https://openrouter.ai/api` as API URL
-- **LocalAI**: Use `http://localhost:8080` as API URL
-- **LM Studio**: Use `http://localhost:1234` as API URL
-- **Custom**: Any endpoint that follows OpenAI's chat completions format
+- **Ctrl+B** (Cmd+B): Toggle sidebar
+- **Ctrl+K** (Cmd+K): Open command palette
+- **Escape**: Close any open panel
 
-## Keyboard Shortcuts
+### Using the Sidebar
 
-- **Ctrl+Shift+A** (Cmd+Shift+A on Mac): Toggle extension panel
-- **Enter**: Send message (Shift+Enter for new line)
-- **Escape**: Close panel (when input is not focused)
+Click the floating button or press **Ctrl+B** to open the sidebar. From there you can:
 
-## Privacy & Security
+- **Browse** all your conversations
+- **Search** through message history
+- **Export** conversations as Markdown or JSON
+- **Delete** unwanted conversations
+- **Pin** important chats
 
-- ✅ **Local Storage**: All conversations stored locally in your browser
-- ✅ **No Telemetry**: No data sent to BetterGPT servers (because there are none!)
-- ✅ **API Keys Secured**: API keys stored in Chrome's secure storage
-- ✅ **Minimal Permissions**: Only requests necessary Chrome permissions
-- ✅ **Open Source**: Full source code available for audit
+### Command Palette
 
-## Troubleshooting
+Press **Ctrl+K** to open the command palette for quick actions:
+
+- Search conversations
+- Export current chat
+- Jump to specific messages
+- Organize with folders
+
+## 🏗️ How It Works
+
+### Architecture
+
+```
+ChatGPT Page
+    ↓
+Content Script (main.ts)
+    ↓
+ChatGPT Observer (monitors DOM)
+    ↓
+Captures Messages
+    ↓
+Sends to Background Worker
+    ↓
+Stores in IndexedDB
+    ↓
+Displays in Sidebar/Command Palette
+```
+
+### DOM Observation
+
+BetterGPT uses a `MutationObserver` to watch for changes in the ChatGPT DOM. When new messages appear, it:
+
+1. Detects the message element
+2. Extracts role (user/assistant) and content
+3. Generates unique message ID
+4. Saves to IndexedDB
+5. Updates conversation metadata
+
+### Conversation Detection
+
+Conversations are identified by:
+- URL pattern: `/c/[conversation-id]`
+- Automatic title extraction from page
+- First message as fallback title
+
+## 🛠️ Development
+
+### Tech Stack
+
+- **Framework**: Svelte 4 + TypeScript
+- **Build**: Vite 5
+- **Styling**: Tailwind CSS 3
+- **Storage**: DexieJS (IndexedDB)
+- **Platform**: Chrome Extension (Manifest V3)
+
+### Project Structure
+
+```
+src/
+├── components/
+│   ├── App.svelte              # Main container
+│   ├── Sidebar.svelte          # Conversation sidebar
+│   └── CommandPalette.svelte   # Command palette (Ctrl+K)
+├── content/
+│   └── main.ts                 # Content script entry
+├── background/
+│   └── service-worker.ts       # Message/storage handler
+├── lib/
+│   ├── chatgpt/
+│   │   └── observer.ts         # DOM observation logic
+│   ├── db/
+│   │   └── database.ts         # IndexedDB schema
+│   └── utils/                  # Utility functions
+└── styles/
+    └── global.css              # Tailwind CSS
+```
+
+### Development Commands
+
+```bash
+npm run dev          # Watch mode with hot-reload
+npm run build        # Production build
+npm run lint         # Check code quality
+npm run format       # Format code
+```
+
+### Testing Locally
+
+1. Run `npm run dev` in one terminal
+2. Load extension in Chrome from `dist/`
+3. Make changes to source files
+4. Refresh extension in `chrome://extensions/`
+
+## 🔒 Privacy & Security
+
+### What We DON'T Do
+
+- ❌ Send data to external servers
+- ❌ Track your usage
+- ❌ Access your ChatGPT account
+- ❌ Modify ChatGPT's behavior
+- ❌ Inject ads or promotions
+
+### What We DO
+
+- ✅ Store everything locally in your browser
+- ✅ Only observe ChatGPT's public DOM
+- ✅ Use minimal Chrome permissions
+- ✅ Open source for auditing
+
+### Permissions
+
+- **storage**: Store conversations in IndexedDB
+- That's it! No network permissions needed.
+
+## 🤔 Troubleshooting
 
 ### Extension Not Working?
-- Verify the extension is loaded in `chrome://extensions/`
-- Check that at least one AI provider is configured and active
-- Try reloading the page
 
-### No AI Response?
-- Test your provider connection in Settings
-- Check your API key is valid
-- For local providers, ensure the server is running
-- Check browser console for errors
+1. **Check URL**: Only works on `chat.openai.com` and `chatgpt.com`
+2. **Refresh page**: Hard refresh ChatGPT page (Ctrl+Shift+R)
+3. **Reload extension**: Go to `chrome://extensions/` and click reload
 
-### Streaming Not Working?
-- Some providers may not support streaming
-- Check provider configuration in Settings
-- Try a non-streaming request first
+### Messages Not Capturing?
 
-## Contributing
+1. **ChatGPT DOM changes**: ChatGPT may have updated their DOM structure
+2. **Check console**: Look for BetterGPT logs
+3. **Report issue**: Open a GitHub issue with details
 
-Contributions are welcome! Please feel free to submit issues and pull requests.
+### Sidebar Not Showing?
 
-## License
+1. **Press Ctrl+B**: Toggle sidebar with keyboard shortcut
+2. **Check toggle button**: Look for floating button in top-right
+3. **Z-index issues**: Check if another extension is conflicting
+
+## 📝 Roadmap
+
+### Coming Soon
+
+- [ ] Folder/tag system for organization
+- [ ] Full-text search across all messages
+- [ ] Custom keyboard shortcuts
+- [ ] Dark mode improvements
+- [ ] Token counting per conversation
+- [ ] Message-level copy tools
+- [ ] Bulk export options
+
+### Future Ideas
+
+- [ ] Sync across devices (optional)
+- [ ] Advanced search filters
+- [ ] Conversation analytics
+- [ ] Custom themes
+- [ ] API for extensions
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
 
 ISC
 
-## Acknowledgments
+## �� Acknowledgments
 
-Built with love using Svelte, Vite, and Tailwind CSS.
+- Inspired by Superpower ChatGPT
+- Built with Svelte, Vite, and Tailwind CSS
+- Thanks to the open source community
+
+---
+
+**Note**: This extension observes ChatGPT's DOM. If ChatGPT updates their structure, the extension may need updates. We'll maintain compatibility as ChatGPT evolves.

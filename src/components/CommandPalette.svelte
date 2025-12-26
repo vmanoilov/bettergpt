@@ -7,8 +7,18 @@
   let searchQuery = '';
   let selectedIndex = 0;
   let actions = [
-    { id: 'search', label: 'Search conversations', icon: '🔍', action: () => console.log('Search') },
-    { id: 'export', label: 'Export current conversation', icon: '💾', action: () => console.log('Export') },
+    {
+      id: 'search',
+      label: 'Search conversations',
+      icon: '🔍',
+      action: () => console.log('Search'),
+    },
+    {
+      id: 'export',
+      label: 'Export current conversation',
+      icon: '💾',
+      action: () => console.log('Export'),
+    },
     { id: 'new', label: 'New conversation', icon: '✨', action: () => console.log('New') },
     { id: 'settings', label: 'Settings', icon: '⚙️', action: () => console.log('Settings') },
   ];
@@ -72,7 +82,6 @@
           bind:value={searchQuery}
           placeholder="Type a command or search..."
           class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border-0 text-lg focus:outline-none focus:ring-0 text-gray-900 dark:text-white"
-          autofocus
         />
       </div>
 
@@ -102,7 +111,9 @@
       </div>
 
       <!-- Footer -->
-      <div class="px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex justify-between">
+      <div
+        class="px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 flex justify-between"
+      >
         <span>↑↓ Navigate</span>
         <span>↵ Select</span>
         <span>ESC Close</span>

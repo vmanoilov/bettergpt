@@ -1,6 +1,6 @@
 /**
  * Content Script Main Entry Point for BetterGPT
- * 
+ *
  * Injects UI components into ChatGPT pages
  */
 
@@ -26,7 +26,8 @@ function initialize(): void {
     // Create container for Svelte app
     const appContainer = document.createElement('div');
     appContainer.id = 'bettergpt-root';
-    appContainer.style.cssText = 'position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 9998;';
+    appContainer.style.cssText =
+      'position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 9998;';
     document.body.appendChild(appContainer);
 
     // Initialize Svelte app

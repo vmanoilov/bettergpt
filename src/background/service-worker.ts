@@ -1,6 +1,6 @@
 /**
  * Background Service Worker for BetterGPT Chrome Extension
- * 
+ *
  * Handles message storage and conversation management for ChatGPT
  */
 
@@ -68,10 +68,7 @@ async function handleSaveMessage(
 ): Promise<void> {
   try {
     // Find or create conversation
-    let conversation = await db.conversations
-      .where('id')
-      .equals(parseInt(conversationId))
-      .first();
+    let conversation = await db.conversations.where('id').equals(parseInt(conversationId)).first();
 
     if (!conversation) {
       const convId = await db.conversations.add({
@@ -114,10 +111,7 @@ async function handleUpdateConversation(
 ): Promise<void> {
   try {
     // Find or create conversation
-    let conversation = await db.conversations
-      .where('id')
-      .equals(parseInt(conversationId))
-      .first();
+    const conversation = await db.conversations.where('id').equals(parseInt(conversationId)).first();
 
     if (!conversation) {
       await db.conversations.add({

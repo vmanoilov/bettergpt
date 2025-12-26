@@ -1,6 +1,6 @@
 /**
  * ChatGPT Conversation Observer
- * 
+ *
  * Monitors the ChatGPT DOM for conversation changes and captures messages
  */
 

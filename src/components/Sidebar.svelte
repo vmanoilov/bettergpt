@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount } from 'svelte';
   import { formatRelativeTime } from '../lib/utils/date';
   import type { Conversation } from '../lib/db';
 

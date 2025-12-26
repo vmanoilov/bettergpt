@@ -150,11 +150,10 @@ bettergpt/
    - Click "Load unpacked"
    - Select the `dist/` folder
 
-5. **Test it out**
-   - Open `test-page.html` for basic testing
-   - Visit https://chat.openai.com to test ChatGPT integration
-   - Press `Ctrl+Shift+A` to toggle the main UI
-   - Press `Ctrl+Shift+S` to toggle the ChatGPT sidebar
+5. **Configure and test**
+   - Press `Ctrl+Shift+A` to open the extension
+   - Go to Settings tab and configure a provider
+   - See [MANUAL_TESTING_GUIDE.md](MANUAL_TESTING_GUIDE.md) for complete testing instructions
 
 ### Development Workflow
 

@@ -4,8 +4,8 @@
  * Provides UI for configuring AI providers and extension settings.
  */
 
-import type { ExtensionConfig } from '../content/types';
-import type { ProviderConfig } from '../providers/base-provider';
+import type { ExtensionConfig } from '../types';
+import type { ProviderConfig } from '../../providers/base-provider';
 import { ProviderModal } from '../../components/ProviderModal';
 
 export class SettingsPanel {

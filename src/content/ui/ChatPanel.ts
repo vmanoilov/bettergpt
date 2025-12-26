@@ -445,6 +445,26 @@ export class ChatPanel {
   }
 
   /**
+   * Show panel
+   */
+  show(): void {
+    if (this.panelElement) {
+      this.panelElement.style.display = 'flex';
+    }
+    this.onShow();
+  }
+
+  /**
+   * Hide panel
+   */
+  hide(): void {
+    if (this.panelElement) {
+      this.panelElement.style.display = 'none';
+    }
+    this.onHide();
+  }
+
+  /**
    * Update configuration
    */
   updateConfig(config: ExtensionConfig): void {

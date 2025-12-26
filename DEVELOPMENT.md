@@ -1,244 +1,178 @@
-# BetterGPT Development Guide
+# BetterGPT - Development Guide
 
-## Phase 2: Core Features Implemented
+## Phase 1: Foundation & Architecture (Completed)
 
-This document describes the Phase 2 implementation of BetterGPT, which includes ChatGPT integration and conversation management features.
+This document outlines the completed setup and how to work with the project.
 
-## Features Implemented
+## Tech Stack
 
-### 1. ChatGPT Integration
+- **Framework**: Svelte 4 with TypeScript
+- **Build System**: Vite 5
+- **Styling**: Tailwind CSS 3 with custom design tokens
+- **Database**: DexieJS (IndexedDB wrapper)
+- **Search**: Fuse.js
+- **Utilities**: Day.js, JSZip, FileSaver
+- **Code Quality**: ESLint, Prettier
+- **Platform**: Chrome Extension Manifest V3
 
-#### API Interceptor (`src/integrations/chatgpt/interceptor.ts`)
-- Intercepts ChatGPT API calls using fetch and XMLHttpRequest
-- Captures conversation data including:
-  - Request and response payloads
-  - Model information
-  - Token usage
-  - Streaming responses
-- Automatically saves conversations to IndexedDB
-
-#### DOM Observer (`src/integrations/chatgpt/dom-observer.ts`)
-- Monitors ChatGPT page for changes
-- Detects new messages in real-time
-- Tracks conversation navigation
-- Extracts conversation metadata (title, model)
-- Emits custom events for conversation changes
-
-#### Sidebar Injector (`src/integrations/chatgpt/sidebar.ts`)
-- Injects a sidebar UI into ChatGPT interface
-- Provides quick access to saved conversations
-- Shows folder structure
-- Includes search functionality
-- Keyboard shortcut: `Ctrl+Shift+S` to toggle
-
-### 2. Conversation Management
-
-#### Database (`src/data/database.ts`)
-- Uses DexieJS for IndexedDB operations
-- Two main tables:
-  - `conversations`: Stores conversation data with messages
-  - `folders`: Stores folder structure for organization
-- Indexes for efficient querying:
-  - By folder
-  - By favorite status
-  - By archive status
-  - By tags
-  - By creation/update date
-
-#### Conversation Manager (`src/managers/conversation-manager.ts`)
-Provides operations for:
-- Archive/unarchive conversations
-- Favorite/unfavorite conversations
-- Move to folder
-- Bulk operations (archive, delete, move)
-- Thread management (parent-child relationships)
-- Search functionality
-- Import/export conversations
-
-#### Folder Manager (`src/managers/folder-manager.ts`)
-Provides operations for:
-- Create/rename/delete folders
-- Nested folder structure
-- Move folders
-- Get folder tree
-- Get folder path (breadcrumb)
-- Set folder color and icon
-
-## Architecture
+## Project Structure
 
 ```
-src/
-├── background/
-│   └── service-worker.ts          # Background service worker
-├── content/
-│   ├── main.ts                     # Content script entry point
-│   ├── types.ts                    # Type definitions
-│   └── ui/
-│       ├── UIManager.ts            # UI component manager
-│       └── ChatPanel.ts            # Chat panel component
-├── data/
-│   └── database.ts                 # IndexedDB database layer
-├── integrations/
-│   └── chatgpt/
-│       ├── index.ts                # Integration manager
-│       ├── interceptor.ts          # API interceptor
-│       ├── dom-observer.ts         # DOM observer
-│       └── sidebar.ts              # Sidebar injector
-└── managers/
-    ├── conversation-manager.ts     # Conversation operations
-    └── folder-manager.ts           # Folder operations
+bettergpt/
+├── src/
+│   ├── background/           # Background service worker
+│   │   └── service-worker.ts
+│   ├── content/              # Content scripts
+│   │   ├── main.ts          # Entry point
+│   │   ├── types.ts         # Type definitions
+│   │   └── ui/              # Legacy UI (to be removed)
+│   ├── components/          # Svelte components
+│   │   ├── App.svelte       # Main app component
+│   │   └── ChatPanel.svelte # Chat interface
+│   ├── lib/                 # Shared libraries
+│   │   ├── db/             # Database layer (DexieJS)
+│   │   ├── search/         # Search functionality (Fuse.js)
+│   │   └── utils/          # Utility functions
+│   ├── stores/             # Svelte stores
+│   └── styles/             # Global styles (Tailwind)
+├── icons/                   # Extension icons
+├── dist/                    # Build output (gitignored)
+├── public/                  # Static assets
+├── manifest.json           # Chrome extension manifest
+└── [config files]          # Various configuration files
 ```
 
-## Building the Extension
-
-### Prerequisites
-- Node.js 16+ installed
-- npm or pnpm
+## Development Workflow
 
 ### Installation
+
 ```bash
 npm install
 ```
 
-### Build for Development
+### Development
+
+Start the development server with hot-reload:
+
+```bash
+npm run dev
+```
+
+This will build the extension in watch mode. Any changes to source files will automatically rebuild.
+
+### Building
+
+Build the extension for production:
+
 ```bash
 npm run build
 ```
 
-This will:
-1. Compile TypeScript files to JavaScript
-2. Bundle dependencies using esbuild
-3. Copy static assets (manifest, icons)
-4. Output everything to `dist/` directory
+The built extension will be in the `dist/` directory.
 
-### Load in Chrome
-1. Open Chrome and navigate to `chrome://extensions/`
-2. Enable "Developer mode" (toggle in top-right)
-3. Click "Load unpacked"
-4. Select the `dist/` folder from the project
+### Code Quality
 
-## Testing
+Run linting:
 
-### Manual Testing
+```bash
+npm run lint
+npm run lint:fix  # Auto-fix issues
+```
+
+Run formatting:
+
+```bash
+npm run format:check  # Check formatting
+npm run format        # Fix formatting
+```
+
+Type checking:
+
+```bash
+npm run type-check
+```
+
+### Loading the Extension in Chrome
+
 1. Build the extension: `npm run build`
-2. Load in Chrome (see above)
-3. Open `test-page.html` in your browser
-4. Test the following:
-   - Extension loading (check status)
-   - UI toggle with `Ctrl+Shift+A`
-   - Database operations (via browser DevTools console)
+2. Open Chrome and navigate to `chrome://extensions/`
+3. Enable "Developer mode" (top right)
+4. Click "Load unpacked"
+5. Select the `dist/` directory
 
-### Testing on ChatGPT
-1. Load the extension in Chrome
-2. Navigate to https://chat.openai.com or https://chatgpt.com
-3. Start a conversation with ChatGPT
-4. Open browser DevTools console and check for:
-   - `[ChatGPTInterceptor]` logs showing API calls being captured
-   - `[ChatGPTDOMObserver]` logs showing DOM changes
-5. Press `Ctrl+Shift+S` to open the BetterGPT sidebar
-6. Your conversation should appear in the sidebar
+### Hot Reload During Development
 
-### Database Testing
-Open browser console and run:
+While `npm run dev` is running:
+1. Make changes to source files
+2. Wait for the build to complete
+3. Go to `chrome://extensions/`
+4. Click the refresh icon on the BetterGPT extension
 
-```javascript
-// Access the database
-const db = window.indexedDB.databases();
-db.then(databases => console.log(databases));
+## Architecture Overview
 
-// The database should be named 'BetterGPTDB'
-```
+### Background Service Worker
 
-## Keyboard Shortcuts
+- Handles extension lifecycle events
+- Manages communication between content scripts
+- Initializes and manages DexieJS database
+- Handles background tasks
 
-- `Ctrl+Shift+A` - Toggle main BetterGPT UI
-- `Ctrl+Shift+S` - Toggle ChatGPT sidebar (when on ChatGPT)
+### Content Script
 
-## Data Storage
+- Injects the Svelte UI into web pages
+- Manages keyboard shortcuts
+- Communicates with background script
+- Handles page-level interactions
 
-All data is stored locally in IndexedDB:
-- Database name: `BetterGPTDB`
-- Tables: `conversations`, `folders`
-- No data is sent to external servers
-- Data persists across browser sessions
+### Svelte Components
 
-### Conversation Schema
-```typescript
-interface Conversation {
-  id: string;
-  title: string;
-  model: string;
-  createdAt: number;
-  updatedAt: number;
-  messages: ConversationMessage[];
-  folderId?: string;
-  parentId?: string;
-  isArchived: boolean;
-  isFavorite: boolean;
-  totalTokens?: number;
-  tags?: string[];
-}
-```
+- **App.svelte**: Main container component
+- **ChatPanel.svelte**: Chat interface component
 
-### Folder Schema
-```typescript
-interface Folder {
-  id: string;
-  name: string;
-  parentId?: string;
-  createdAt: number;
-  updatedAt: number;
-  color?: string;
-  icon?: string;
-}
-```
+### Database Schema
 
-## Known Limitations
+DexieJS stores the following:
+- **Conversations**: Chat history
+- **Messages**: Individual messages
+- **Prompts**: Saved prompt templates
+- **Folders**: Organization structure
+- **Settings**: User preferences
 
-1. **ChatGPT Integration**: The DOM selectors and API patterns are based on the current ChatGPT interface. They may need updates if ChatGPT changes their UI or API.
+### State Management
 
-2. **Auto-save**: Currently implements basic auto-save. May need refinement for edge cases.
+Uses Svelte stores for:
+- Configuration
+- UI visibility
+- Loading states
+- Current conversation
+- Search queries
 
-3. **Streaming**: Streaming message capture is implemented but may need adjustment based on ChatGPT's actual streaming format.
+## Tailwind Configuration
 
-4. **Attachments**: Attachment handling structure is in place but needs full implementation based on ChatGPT's attachment format.
+Custom design tokens defined in `tailwind.config.js`:
+- Primary colors (blue palette)
+- Secondary colors (purple palette)
+- Semantic colors (success, warning, error, info)
+- Custom spacing values
+- Shadow elevations
+- Animations and transitions
 
-## Future Enhancements
+## Next Steps (Phase 2+)
 
-- Drag-and-drop for folder organization
-- Advanced search with filters
-- Export conversations in multiple formats
-- Conversation templates
-- Tag management UI
-- Bulk operations UI
-- Settings page
-- Sync across devices
-
-## Troubleshooting
-
-### Extension not loading
-- Check Chrome DevTools console for errors
-- Verify `dist/` folder contains compiled files
-- Try reloading the extension from `chrome://extensions/`
-
-### Database not working
-- Open IndexedDB in Chrome DevTools (Application tab)
-- Check if `BetterGPTDB` database exists
-- Clear the database if needed: Application > IndexedDB > BetterGPTDB > Delete database
-
-### ChatGPT integration not working
-- Ensure you're on the correct ChatGPT domain
-- Check console for `[ChatGPTInterceptor]` and `[ChatGPTDOMObserver]` logs
-- API endpoints may have changed - check network tab
+- AI Integration
+- Advanced UI Components
+- Prompt Management
+- Conversation History
+- Export/Import Functionality
+- Settings Panel
+- Search Implementation
 
 ## Contributing
 
-When making changes:
-1. Edit TypeScript files in `src/`
-2. Run `npm run build` to compile
-3. Test in Chrome
-4. Commit only source files (not `dist/`)
+Please ensure all code passes linting and formatting checks before committing:
 
-## License
-
-ISC
+```bash
+npm run lint
+npm run format
+npm run type-check
+```

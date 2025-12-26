@@ -1,286 +1,274 @@
-# BetterGPT - Personal AI Assistant Chrome Extension
+# BetterGPT - ChatGPT Enhanced
 
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/vmanoilov/bettergpt)
 
 ## Overview
 
-BetterGPT is a Chrome extension designed to provide an intelligent, context-aware AI assistant directly within your browser. Built with modern web technologies, it aims to enhance your browsing experience with seamless AI interactions.
+BetterGPT is a Chrome extension that supercharges ChatGPT with conversation management, search, export, and organization features. Inspired by Superpower ChatGPT, it observes and enhances your ChatGPT experience without replacing it.
+
+## 🎯 What It Does
+
+BetterGPT **augments** the ChatGPT web interface - it doesn't implement its own AI. Instead, it:
+
+- **Observes** ChatGPT conversations in real-time
+- **Captures** user prompts and assistant responses  
+- **Stores** everything locally in your browser (IndexedDB)
+- **Enhances** ChatGPT with powerful organization tools
 
 ## ✨ Features
 
+### Conversation Capture
+- ✅ Automatically detects and saves ChatGPT conversations
+- ✅ Monitors DOM for new messages via MutationObserver
+- ✅ Handles streaming responses correctly
+- ✅ Works across page navigations
+
+### Sidebar
+- ✅ Browse all captured conversations
+- ✅ Search through chat history
+- ✅ Filter by folders/tags
+- ✅ Export conversations (Markdown/JSON)
+- ✅ Quick actions (pin, delete, export)
+- ✅ Toggle with **Ctrl+B** (Cmd+B on Mac)
+
 ### Command Palette
-- **Universal Command Interface**: Press `Cmd/Ctrl+K` to access all extension features
-- **Fuzzy Search**: Quickly find commands by typing any part of their name
-- **Categorized Actions**: Commands organized by category (Conversation, Navigation, Search, Settings, Data)
-- **Recent Items**: Previously used commands appear at the top for quick access
-- **Keyboard Navigation**: Full keyboard support with arrow keys and Enter
+- ✅ Quick access with **Ctrl+K** (Cmd+K on Mac)
+- ✅ Keyboard navigation
+- ✅ Search conversations
+- ✅ Jump to specific messages
+- ✅ Export and organize
 
-### Enhanced Keyboard Shortcuts
-- **Centralized Management**: All shortcuts managed through a unified system
-- **Platform-Aware**: Automatically uses Cmd on Mac, Ctrl on Windows/Linux
-- **Priority System**: Prevents conflicts with proper priority handling
-- **Context-Aware**: Shortcuts disabled when typing in input fields (except Cmd/Ctrl+K)
+### Local-Only Storage
+- ✅ All data stored in IndexedDB
+- ✅ No external servers
+- ✅ Complete privacy
+- ✅ Works offline
 
-**Default Shortcuts:**
-- `Cmd/Ctrl+K` - Open Command Palette
-- `Ctrl+Shift+A` - Toggle Main UI
-- `Ctrl+Shift+S` - Toggle ChatGPT Sidebar
+## 🚀 Installation
 
-### Theme Support
-- **Light & Dark Modes**: Fully implemented theme system
-- **System Preference Detection**: Automatically follows OS theme preference
-- **Persistent Settings**: Theme choice saved and restored across sessions
-- **CSS Variables**: All colors use CSS custom properties for easy theming
-- **Theme Toggle**: Quick theme switching via UI button or command palette
-
-### ChatGPT Integration
-- **API Interception**: Automatically captures ChatGPT conversations in real-time
-- **DOM Monitoring**: Tracks conversation changes and updates
-- **Sidebar UI**: Injected sidebar in ChatGPT for quick access to saved conversations
-- **Streaming Support**: Handles both regular and streaming API responses
-- **Metadata Extraction**: Captures model info, token usage, and conversation metadata
-
-### Conversation Management
-- **Auto-Save**: Conversations are automatically saved to IndexedDB
-- **Folder Organization**: Create folders to organize conversations
-- **Archive/Favorite**: Mark conversations as archived or favorite
-- **Bulk Operations**: Perform operations on multiple conversations at once
-- **Thread Support**: Parent-child relationships for conversation threads
-- **Search**: Full-text search across conversations
-
-### Conversation Threading & Context
-- **Conversation Linking**: Fork conversations at any message, continue from existing conversations, or create reference links
-- **Graph Visualization**: Interactive D3.js-powered visualization of conversation relationships with zoom, pan, and drag
-- **Smart Context Management**: Auto-load context from linked conversations with configurable settings
-- **Token Counting**: Visual token usage indicators with model-specific limits
-- **Context Truncation**: Three intelligent strategies (Recent, Relevant, Balanced) to fit context within token limits
-- **Multiple Views**: Switch between List, Graph, and Context views for different workflows
-
-### Export & Import System
-- **Multiple Formats**: Markdown (.md), Plain Text (.txt), JSON (.json), HTML (.html), PDF (.pdf), DOCX (.docx)
-- **Markdown Templates**: Standard, Obsidian-compatible, GitHub-flavored
-- **PDF Templates**: Minimal, Academic, Dark modes
-- **Import Support**: JSON, Markdown with metadata, ChatGPT exports, Plain text
-- **Bulk Operations**: Export/import multiple conversations at once
-- **Thread Preservation**: Maintain parent-child conversation relationships
-- **Custom Templates**: Handlebars-style syntax for custom formatting
-- **Data Integrity**: All metadata and conversation structure preserved
-
-**Note:** Export functionality is temporarily disabled due to a build error. See [Known Issues](#known-issues) below.
-
-### Performance Optimizations
-- **Virtual Scrolling**: Efficient rendering for large lists (only visible items rendered)
-- **Database Caching**: Query results cached with automatic invalidation
-- **Batch Operations**: Multiple database operations executed efficiently
-- **Throttling & Debouncing**: Event handlers optimized for performance
-- **Pagination Support**: Load data in chunks for better performance
-
-## Core Philosophies
-
-1. **Privacy-First**: Your data and conversations remain secure. All data is stored locally in IndexedDB.
-
-2. **Seamless Integration**: Designed to work naturally within your browser workflow without disrupting your browsing experience.
-
-3. **Extensible Architecture**: Built with modularity in mind, allowing for easy feature additions and customizations.
-
-4. **Performance**: Lightweight and efficient, ensuring minimal impact on browser performance.
-
-5. **User-Centric Design**: Focus on intuitive UI/UX that makes AI assistance accessible and helpful.
-
-## Technology Stack
-
-- **Framework**: TypeScript with modern ES2020+ features
-- **Platform**: Chrome Extension (Manifest V3)
-- **Database**: DexieJS (IndexedDB wrapper)
-- **Build System**: esbuild for fast compilation and bundling
-- **Architecture**: Modular design with separation of concerns
-
-## Project Structure
-
-```
-bettergpt/
-├── src/
-│   ├── background/        # Background service worker
-│   ├── content/          # Content scripts and UI components
-│   │   ├── main.ts       # Entry point
-│   │   ├── types.ts      # Type definitions
-│   │   └── ui/           # UI components
-│   ├── data/            # Database layer (DexieJS)
-│   ├── integrations/    # ChatGPT integration modules
-│   │   └── chatgpt/
-│   │       ├── interceptor.ts   # API interception
-│   │       ├── dom-observer.ts  # DOM monitoring
-│   │       └── sidebar.ts       # Sidebar injection
-│   └── managers/        # Business logic managers
-│       ├── conversation-manager.ts
-│       └── folder-manager.ts
-├── manifest.json        # Chrome extension manifest (v3)
-├── build.js            # Build script
-└── README.md
-```
-
-## Getting Started
-
-### Prerequisites
-- Node.js 16+ and npm
-- Google Chrome browser
-
-### Installation & Development
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/vmanoilov/bettergpt.git
-   cd bettergpt
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Build the extension**
-   ```bash
-   npm run build
-   ```
-
-4. **Load in Chrome**
-   - Open Chrome and go to `chrome://extensions/`
-   - Enable "Developer mode" (top-right toggle)
-   - Click "Load unpacked"
-   - Select the `dist/` folder
-
-5. **Configure and test**
-   - Press `Ctrl+Shift+A` to open the extension
-   - Go to Settings tab and configure a provider
-   - See [MANUAL_TESTING_GUIDE.md](MANUAL_TESTING_GUIDE.md) for complete testing instructions
-
-### Development Workflow
+### Build from Source
 
 ```bash
-# Build the extension
-npm run build
+# Clone repository
+git clone https://github.com/vmanoilov/bettergpt.git
+cd bettergpt
 
-# After making changes, rebuild and reload the extension in Chrome
+# Install dependencies
+npm install
+
+# Build extension
+npm run build
 ```
 
-For detailed development information, see [DEVELOPMENT.md](DEVELOPMENT.md).
+### Load in Chrome
 
-## Usage
+1. Build the extension (see above)
+2. Open Chrome: `chrome://extensions/`
+3. Enable "Developer mode" (toggle in top-right)
+4. Click "Load unpacked"
+5. Select the `dist/` directory
 
-### First-Time Setup
+## 💡 Usage
 
-1. **Load the Extension**
-   - After building, the extension will initialize with a default OpenAI provider (disabled)
-   - Open the extension by pressing `Ctrl+Shift+A`
+### First Time Setup
 
-2. **Configure AI Provider**
-   - Click on the **Settings** tab (⚙️) in the extension UI
-   - Find your AI provider in the list
-   - Click **Edit** to configure:
-     - **OpenAI**: Add your API key from https://platform.openai.com/api-keys
-     - **Local Proxy**: Set your local endpoint URL (e.g., http://localhost:1234/v1/chat/completions)
-     - **OpenAI-Compatible**: Configure custom endpoint and API key
-   - Click **Enable** to activate the provider
-   - The provider is now ready to use!
-
-3. **Start Chatting**
-   - Switch to the **Chat** tab (💬)
-   - Type your message and press Send
-   - The AI will respond based on your configured provider
+1. **Navigate to ChatGPT**: Go to https://chat.openai.com or https://chatgpt.com
+2. **Look for the toggle button**: You'll see a floating button in the top-right
+3. **Start chatting**: BetterGPT automatically captures your conversations
 
 ### Keyboard Shortcuts
-- `Cmd/Ctrl+K` - Open Command Palette
-- `Ctrl+Shift+A` - Toggle main BetterGPT UI
-- `Ctrl+Shift+S` - Toggle ChatGPT sidebar (when on ChatGPT)
 
-### AI Providers
+- **Ctrl+B** (Cmd+B): Toggle sidebar
+- **Ctrl+K** (Cmd+K): Open command palette
+- **Escape**: Close any open panel
 
-BetterGPT supports multiple AI provider types:
+### Using the Sidebar
 
-**OpenAI**
-- Official OpenAI API
-- Requires API key from https://platform.openai.com/api-keys
-- Supports GPT-3.5-turbo, GPT-4, and other models
+Click the floating button or press **Ctrl+B** to open the sidebar. From there you can:
 
-**Local Proxy**
-- Connect to local AI servers (e.g., LM Studio, Ollama, LocalAI)
-- No API key required for most local setups
-- Configure the endpoint URL (usually http://localhost:PORT/v1/chat/completions)
-
-**OpenAI-Compatible**
-- Third-party services that use OpenAI-compatible APIs
-- Examples: Azure OpenAI, Anthropic Claude (via proxy), custom deployments
-- Configure both endpoint and API key
+- **Browse** all your conversations
+- **Search** through message history
+- **Export** conversations as Markdown or JSON
+- **Delete** unwanted conversations
+- **Pin** important chats
 
 ### Command Palette
-The command palette provides quick access to all extension features:
-1. Press `Cmd/Ctrl+K` to open
-2. Type to search for commands
-3. Use arrow keys to navigate
-4. Press Enter to execute
 
-Available commands include:
-- New Conversation
-- Search Conversations
-- Archive/Favorite conversations
-- Toggle Theme
-- Export/Import data
-- And more...
+Press **Ctrl+K** to open the command palette for quick actions:
 
-### Theme Support
-BetterGPT supports three theme modes:
-- **Light**: Always use light theme
-- **Dark**: Always use dark theme  
-- **System**: Automatically follow OS preference (default)
+- Search conversations
+- Export current chat
+- Jump to specific messages
+- Organize with folders
 
-Change theme via:
-- Settings tab in the extension UI
-- Theme toggle button in UI header (sun/moon icon)
+## 🏗️ How It Works
 
-### Features
-1. **Pluggable AI Providers**: Choose from OpenAI, local proxies, or OpenAI-compatible services
-2. **Context-Aware**: Automatically includes page URL, title, and selected text in requests
-3. **Conversation Management**: Save, search, and organize your AI conversations
-4. **Real-Time Responses**: See AI responses with loading indicators
-5. **Error Handling**: Clear error messages help troubleshoot configuration issues
+### Architecture
 
-## Project Status
+```
+ChatGPT Page
+    ↓
+Content Script (main.ts)
+    ↓
+ChatGPT Observer (monitors DOM)
+    ↓
+Captures Messages
+    ↓
+Sends to Background Worker
+    ↓
+Stores in IndexedDB
+    ↓
+Displays in Sidebar/Command Palette
+```
 
-### ✅ Completed Phases
+### DOM Observation
 
-- **Phase 1**: Basic Chrome extension structure, service worker, content scripts, UI framework
-- **Phase 2**: ChatGPT API integration, conversation management, folder organization, IndexedDB storage
-- **Phase 3**: Conversation linking, graph visualization, context management, token counting
-- **Phase 4**: Export/import system, multiple formats, custom templates
-- **Phase 5**: UI/UX polish, command palette, keyboard shortcuts, theme support, performance optimizations
-- **Phase 6**: Browser compatibility documentation, packaging scripts, store submission guides
+BetterGPT uses a `MutationObserver` to watch for changes in the ChatGPT DOM. When new messages appear, it:
 
-### 🚧 Future Enhancements
+1. Detects the message element
+2. Extracts role (user/assistant) and content
+3. Generates unique message ID
+4. Saves to IndexedDB
+5. Updates conversation metadata
 
-- Settings page and customization
-- Cross-device sync (optional)
-- Additional AI platform integrations
-- Automated testing infrastructure
+### Conversation Detection
 
-## Known Issues
+Conversations are identified by:
+- URL pattern: `/c/[conversation-id]`
+- Automatic title extraction from page
+- First message as fallback title
 
-### Export Functionality Status
+## 🛠️ Development
 
-The export-manager.ts has a fully functional implementation for exporting conversations in multiple formats (Markdown, JSON, HTML, PDF, RTF). All export functionality is working as expected.
+### Tech Stack
 
-### Configuration Notes
+- **Framework**: Svelte 4 + TypeScript
+- **Build**: Vite 5
+- **Styling**: Tailwind CSS 3
+- **Storage**: DexieJS (IndexedDB)
+- **Platform**: Chrome Extension (Manifest V3)
 
-- **API Keys**: Stored securely in chrome.storage.local (encrypted by Chrome)
-- **Local Proxies**: Most local AI servers don't require API keys
-- **Provider Settings**: Saved automatically when modified
+### Project Structure
 
-For issues or questions, see [SUPPORT.md](SUPPORT.md).
+```
+src/
+├── components/
+│   ├── App.svelte              # Main container
+│   ├── Sidebar.svelte          # Conversation sidebar
+│   └── CommandPalette.svelte   # Command palette (Ctrl+K)
+├── content/
+│   └── main.ts                 # Content script entry
+├── background/
+│   └── service-worker.ts       # Message/storage handler
+├── lib/
+│   ├── chatgpt/
+│   │   └── observer.ts         # DOM observation logic
+│   ├── db/
+│   │   └── database.ts         # IndexedDB schema
+│   └── utils/                  # Utility functions
+└── styles/
+    └── global.css              # Tailwind CSS
+```
 
-## License
+### Development Commands
 
-ISC License - see [LICENSE](LICENSE) file for details
+```bash
+npm run dev          # Watch mode with hot-reload
+npm run build        # Production build
+npm run lint         # Check code quality
+npm run format       # Format code
+```
 
-## Contributing
+### Testing Locally
 
-We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute to this project.
+1. Run `npm run dev` in one terminal
+2. Load extension in Chrome from `dist/`
+3. Make changes to source files
+4. Refresh extension in `chrome://extensions/`
+
+## 🔒 Privacy & Security
+
+### What We DON'T Do
+
+- ❌ Send data to external servers
+- ❌ Track your usage
+- ❌ Access your ChatGPT account
+- ❌ Modify ChatGPT's behavior
+- ❌ Inject ads or promotions
+
+### What We DO
+
+- ✅ Store everything locally in your browser
+- ✅ Only observe ChatGPT's public DOM
+- ✅ Use minimal Chrome permissions
+- ✅ Open source for auditing
+
+### Permissions
+
+- **storage**: Store conversations in IndexedDB
+- That's it! No network permissions needed.
+
+## 🤔 Troubleshooting
+
+### Extension Not Working?
+
+1. **Check URL**: Only works on `chat.openai.com` and `chatgpt.com`
+2. **Refresh page**: Hard refresh ChatGPT page (Ctrl+Shift+R)
+3. **Reload extension**: Go to `chrome://extensions/` and click reload
+
+### Messages Not Capturing?
+
+1. **ChatGPT DOM changes**: ChatGPT may have updated their DOM structure
+2. **Check console**: Look for BetterGPT logs
+3. **Report issue**: Open a GitHub issue with details
+
+### Sidebar Not Showing?
+
+1. **Press Ctrl+B**: Toggle sidebar with keyboard shortcut
+2. **Check toggle button**: Look for floating button in top-right
+3. **Z-index issues**: Check if another extension is conflicting
+
+## 📝 Roadmap
+
+### Coming Soon
+
+- [ ] Folder/tag system for organization
+- [ ] Full-text search across all messages
+- [ ] Custom keyboard shortcuts
+- [ ] Dark mode improvements
+- [ ] Token counting per conversation
+- [ ] Message-level copy tools
+- [ ] Bulk export options
+
+### Future Ideas
+
+- [ ] Sync across devices (optional)
+- [ ] Advanced search filters
+- [ ] Conversation analytics
+- [ ] Custom themes
+- [ ] API for extensions
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+ISC
+
+## �� Acknowledgments
+
+- Inspired by Superpower ChatGPT
+- Built with Svelte, Vite, and Tailwind CSS
+- Thanks to the open source community
+
+---
+
+**Note**: This extension observes ChatGPT's DOM. If ChatGPT updates their structure, the extension may need updates. We'll maintain compatibility as ChatGPT evolves.

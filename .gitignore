@@ -5,17 +5,6 @@ node_modules/
 # Build outputs
 dist/
 build/
-*.js
-*.js.map
-!manifest.json
-!build.js
-
-# Backup and temporary files
-*.broken
-*.backup
-*.new
-*.tmp
-*.bak
 
 # IDE and editors
 .vscode/

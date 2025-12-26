@@ -24,7 +24,13 @@ export type MessageType =
   | 'GET_CONFIG'
   | 'UPDATE_CONFIG'
   | 'AI_REQUEST'
-  | 'TOGGLE_UI';
+  | 'AI_STREAM_CHUNK'
+  | 'TOGGLE_UI'
+  | 'GET_PAGE_CONTEXT'
+  | 'SAVE_CONVERSATION'
+  | 'GET_CONVERSATIONS'
+  | 'GET_CONVERSATION'
+  | 'DELETE_CONVERSATION';
 
 /**
  * Base message structure with typed payloads
@@ -55,11 +61,11 @@ export interface AIRequestMessage extends BaseMessage {
   payload: AIRequestPayload;
 }
 
-export type Message = 
-  | PingMessage 
-  | GetConfigMessage 
-  | UpdateConfigMessage 
-  | ToggleUIMessage 
+export type Message =
+  | PingMessage
+  | GetConfigMessage
+  | UpdateConfigMessage
+  | ToggleUIMessage
   | AIRequestMessage;
 
 /**
@@ -81,21 +87,44 @@ export interface ConfigResponse extends BaseMessageResponse {
 
 export interface AIResponseMessage extends BaseMessageResponse {
   result?: string;
+  conversationId?: number;
+  messageId?: number;
+  streaming?: boolean;
 }
 
-export type MessageResponse = 
-  | BaseMessageResponse 
-  | PingResponse 
-  | ConfigResponse 
+export interface AIStreamChunkMessage extends BaseMessage {
+  type: 'AI_STREAM_CHUNK';
+  chunk: string;
+  done: boolean;
+  conversationId?: number;
+  messageId?: number;
+}
+
+export type MessageResponse =
+  | BaseMessageResponse
+  | PingResponse
+  | ConfigResponse
   | AIResponseMessage;
+
+/**
+ * Page context captured from the webpage
+ */
+export interface PageContext {
+  url: string;
+  title: string;
+  selectedText?: string;
+  domContext?: string;
+  timestamp: number;
+}
 
 /**
  * AI request payload
  */
 export interface AIRequestPayload {
   message: string;
-  context?: string;
-  conversationId?: string;
+  context?: PageContext;
+  conversationId?: number;
+  stream?: boolean;
 }
 
 /**

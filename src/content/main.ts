@@ -1,217 +1,208 @@
 /**
  * Content Script Main Entry Point for BetterGPT Chrome Extension
- * 
- * This script:
- * - Initializes the UI components on web pages
- * - Manages communication with the background service worker
- * - Handles user interactions within the page context
- * - Initializes ChatGPT integration for conversation capture
+ *
+ * - Injects the Svelte UI into ChatGPT pages
+ * - Pulls config from the background service worker
+ * - Listens for runtime messages (TOGGLE_UI / UPDATE_CONFIG)
+ * - Broadcasts events the UI can optionally handle
  */
 
-import { UIManager } from './ui/UIManager';
-import { chatGPTIntegration } from '../integrations/chatgpt';
-import { conversationManager } from '../managers/conversation-manager';
-import { folderManager } from '../managers/folder-manager';
-import { exportManager } from '../managers/export-manager';
-import { keyboardManager } from '../utils/keyboard';
-import { CommandPalette } from '../components/CommandPalette';
-import { themeManager } from '../utils/theme';
+import App from '@components/App.svelte';
+import '@/styles/global.css';
 
-// Global state
-let uiManager: UIManager | null = null;
-let commandPalette: CommandPalette | null = null;
+type ExtensionConfig = {
+  enabled?: boolean;
+  theme?: string;
+  shortcuts?: {
+    toggleUI?: string;
+  };
+  [k: string]: unknown;
+};
+
+type ConfigResponse =
+  | { success: true; config?: ExtensionConfig }
+  | { success: false; error?: string };
+
+let app: App | null = null;
 let isInitialized = false;
-
-/**
- * Initialize the content script
- */
-async function initialize(): Promise<void> {
-  if (isInitialized) {
-    console.log('[BetterGPT Content] Already initialized');
-    return;
-  }
-
-  console.log('[BetterGPT Content] Initializing...');
-
-  try {
-    // Get configuration from background
-    const response = await chrome.runtime.sendMessage({
-      type: 'GET_CONFIG'
-    });
-
-    if (response.success) {
-      console.log('[BetterGPT Content] Configuration received:', response.config);
-      
-      // Initialize managers
-      conversationManager.initialize();
-      folderManager.initialize();
-      await exportManager.initialize();
-      
-      // Initialize ChatGPT integration if on ChatGPT page
-      if (isChatGPTPage()) {
-        console.log('[BetterGPT Content] Initializing ChatGPT integration');
-        await chatGPTIntegration.initialize();
-      }
-      
-      // Initialize theme manager
-      await themeManager.setTheme(response.config.theme || 'system');
-      
-      // Initialize UI Manager
-      uiManager = new UIManager(response.config);
-      await uiManager.initialize();
-      
-      // Initialize command palette
-      commandPalette = new CommandPalette({
-        onClose: () => {
-          keyboardManager.setEnabled(true);
-        }
-      });
-      await commandPalette.initialize();
-      
-      // Register keyboard shortcuts
-      registerKeyboardShortcuts();
-      
-      isInitialized = true;
-      console.log('[BetterGPT Content] Initialization complete');
-    } else {
-      console.error('[BetterGPT Content] Failed to get configuration:', response.error);
-    }
-  } catch (error) {
-    console.error('[BetterGPT Content] Initialization error:', error);
-    // If background script is not available, we may be in an invalid state
-    if (error instanceof Error && error.message.includes('Extension context invalidated')) {
-      console.warn('[BetterGPT Content] Extension context invalidated, may need reload');
-    }
-  }
-}
 
 /**
  * Check if current page is ChatGPT
  */
 function isChatGPTPage(): boolean {
   const hostname = window.location.hostname;
-  return hostname === 'chat.openai.com' || 
-         hostname === 'chatgpt.com' ||
-         hostname.endsWith('.chat.openai.com') ||
-         hostname.endsWith('.chatgpt.com');
+
+  return (
+    hostname === 'chat.openai.com' ||
+    hostname === 'chatgpt.com' ||
+    hostname.endsWith('.chat.openai.com') ||
+    hostname.endsWith('.chatgpt.com')
+  );
 }
 
 /**
- * Handle messages from background script
+ * Promise wrapper for chrome.runtime.sendMessage (MV3-safe).
  */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[BetterGPT Content] Message received:', message);
+function sendMessage<TResponse = unknown>(
+  payload: unknown
+): Promise<TResponse> {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.runtime.sendMessage(payload, (resp: TResponse) => {
+        const err = chrome.runtime.lastError;
+        if (err) reject(err);
+        else resolve(resp);
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
 
-  switch (message.type) {
-    case 'TOGGLE_UI':
-      if (uiManager) {
-        uiManager.toggle();
-        sendResponse({ success: true });
+/**
+ * Broadcast events for the UI to optionally listen to.
+ * This avoids hard-coupling to unknown App.svelte internals.
+ */
+function emitUIEvent(name: string, detail?: unknown): void {
+  document.dispatchEvent(
+    new CustomEvent(`bettergpt:${name}`, { detail })
+  );
+}
+
+/**
+ * Try to apply config to the Svelte app if it supports it.
+ * This is "best effort" — it won't crash if props differ.
+ */
+function applyConfigToApp(config?: ExtensionConfig): void {
+  if (!app || !config) return;
+
+  try {
+    // If App.svelte accepts a "config" prop, this will work.
+    // If not, Svelte will ignore unknown props.
+    // @ts-expect-error - runtime best-effort $set
+    app.$set?.({ config });
+
+    emitUIEvent('config', config);
+  } catch (e) {
+    console.warn('[BetterGPT] Failed to apply config to app:', e);
+  }
+}
+
+/**
+ * Toggle UI best-effort: emit event + try a prop update.
+ */
+function toggleUI(): void {
+  emitUIEvent('toggle');
+
+  if (!app) return;
+
+  try {
+    // If App supports a "visible" prop or similar, adjust here later.
+    // For now, we only emit an event.
+    // @ts-expect-error - best effort
+    app.$set?.({ __toggle: Date.now() });
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Initialize the extension UI on ChatGPT pages.
+ */
+async function initialize(): Promise<void> {
+  if (isInitialized) return;
+
+  if (!isChatGPTPage()) {
+    console.log('[BetterGPT] Not on ChatGPT page, skipping init');
+    return;
+  }
+
+  console.log('[BetterGPT] Initializing on ChatGPT page');
+
+  try {
+    // Create container for Svelte app
+    const appContainer = document.createElement('div');
+    appContainer.id = 'bettergpt-root';
+    appContainer.style.cssText =
+      'position: fixed; top: 0; left: 0; width: 0; height: 0;' +
+      ' z-index: 9998;';
+    document.body.appendChild(appContainer);
+
+    // Start Svelte app (props are optional)
+    app = new App({ target: appContainer });
+
+    // Pull config from background (optional)
+    try {
+      const response = await sendMessage<ConfigResponse>({
+        type: 'GET_CONFIG',
+      });
+
+      if (response && (response as any).success) {
+        const cfg = (response as any).config as ExtensionConfig | undefined;
+        console.log('[BetterGPT] Config loaded:', cfg);
+        applyConfigToApp(cfg);
       } else {
-        sendResponse({ success: false, error: 'UI not initialized' });
+        console.warn(
+          '[BetterGPT] GET_CONFIG failed:',
+          (response as any)?.error
+        );
       }
-      break;
+    } catch (e) {
+      console.warn('[BetterGPT] GET_CONFIG error:', e);
+    }
+
+    isInitialized = true;
+    console.log('[BetterGPT] Initialization complete');
+  } catch (error) {
+    console.error('[BetterGPT] Initialization error:', error);
+  }
+}
+
+/**
+ * Handle messages from background/popup.
+ */
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  console.log('[BetterGPT] Message received:', message);
+
+  switch (message?.type) {
+    case 'TOGGLE_UI':
+      toggleUI();
+      sendResponse({ success: true });
+      return true;
 
     case 'UPDATE_CONFIG':
-      if (uiManager) {
-        uiManager.updateConfig(message.config);
-        sendResponse({ success: true });
-      } else {
-        sendResponse({ success: false, error: 'UI not initialized' });
-      }
-      break;
+      applyConfigToApp(message?.config as ExtensionConfig);
+      sendResponse({ success: true });
+      return true;
 
     default:
       sendResponse({ success: false, error: 'Unknown message type' });
+      return false;
   }
 });
 
-/**
- * Register keyboard shortcuts
- */
-function registerKeyboardShortcuts(): void {
-  // Register Cmd/Ctrl+K for command palette
-  keyboardManager.register('command-palette', {
-    key: 'k',
-    ctrl: true,
-    meta: true,
-    description: 'Open command palette',
-    category: 'Global',
-    priority: 100,
-    handler: (event) => {
-      if (commandPalette) {
-        commandPalette.toggle();
-      }
-    }
-  });
-
-  // Register Ctrl+Shift+A for UI toggle
-  keyboardManager.register('toggle-ui', {
-    key: 'A',
-    ctrl: true,
-    shift: true,
-    description: 'Toggle main UI',
-    category: 'Global',
-    handler: (event) => {
-      if (uiManager) {
-        uiManager.toggle();
-      }
-    }
-  });
-
-  // Register Ctrl+Shift+S for sidebar toggle
-  keyboardManager.register('toggle-sidebar', {
-    key: 'S',
-    ctrl: true,
-    shift: true,
-    description: 'Toggle sidebar',
-    category: 'Global',
-    handler: (event) => {
-      chrome.runtime.sendMessage({ type: 'TOGGLE_SIDEBAR' }).catch(console.error);
-    }
-  });
-
-  console.log('[BetterGPT Content] Keyboard shortcuts registered');
-}
-
-/**
- * Handle keyboard shortcuts
- */
-document.addEventListener('keydown', (event) => {
-  keyboardManager.handleKeyEvent(event);
-});
-
-/**
- * Cleanup on page unload
- */
+// Cleanup on unload (best-effort)
 window.addEventListener('beforeunload', () => {
-  if (uiManager) {
-    uiManager.destroy();
+  emitUIEvent('destroy');
+
+  try {
+    // @ts-expect-error - best effort
+    app?.$destroy?.();
+  } catch {
+    // ignore
   }
-  
-  if (commandPalette) {
-    commandPalette.destroy();
-  }
-  
-  // Cleanup ChatGPT integration
-  if (isChatGPTPage()) {
-    chatGPTIntegration.destroy();
-  }
-  
-  // Cleanup managers
-  conversationManager.destroy();
-  folderManager.destroy();
-  
-  // Clear keyboard shortcuts
-  keyboardManager.clear();
+
+  app = null;
+  isInitialized = false;
 });
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initialize);
+  document.addEventListener('DOMContentLoaded', () => {
+    void initialize();
+  });
 } else {
-  initialize();
+  void initialize();
 }
 
-// Export for testing
-export { initialize, uiManager };
+export {};

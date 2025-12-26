@@ -1,6 +1,6 @@
 /**
  * UIManager - Manages the UI components for the content script
- * 
+ *
  * This class handles:
  * - Creating and destroying UI elements
  * - Managing component lifecycle
@@ -52,7 +52,7 @@ export class UIManager {
       display: flex;
       flex-direction: column;
     `;
-    
+
     document.body.appendChild(this.container);
 
     // Create navigation tabs

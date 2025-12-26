@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "BetterGPT - Personal AI Assistant",
-  "version": "0.1.0",
-  "description": "A Chrome extension providing an intelligent, context-aware AI assistant directly within your browser.",
+  "name": "BetterGPT - ChatGPT Enhanced",
+  "version": "0.3.0",
+  "description": "Supercharge ChatGPT with conversation management, search, export, and organization features.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -14,25 +14,31 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*"
+      ],
       "js": ["content/main.js"],
       "css": ["assets/main.css"],
       "run_at": "document_idle"
     }
   ],
   "permissions": [
-    "activeTab",
-    "storage",
-    "scripting"
+    "storage"
   ],
-  "host_permissions": [
-    "http://*/*",
-    "https://*/*"
-  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+K",
+        "mac": "Command+K"
+      },
+      "description": "Open command palette"
+    }
+  },
   "web_accessible_resources": [
     {
-      "resources": ["content/ui/*"],
-      "matches": ["<all_urls>"]
+      "resources": ["assets/*"],
+      "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"]
     }
   ]
 }

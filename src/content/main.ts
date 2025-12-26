@@ -1,112 +1,44 @@
 /**
- * Content Script Main Entry Point for BetterGPT Chrome Extension
- *
- * This script:
- * - Initializes the Svelte UI components on web pages
- * - Manages communication with the background service worker
- * - Handles user interactions within the page context
+ * Content Script Main Entry Point for BetterGPT
+ * 
+ * Injects UI components into ChatGPT pages
  */
 
 import App from '@components/App.svelte';
-import { isUIVisible, config } from '@stores';
 import '@/styles/global.css';
 
-// Global state
-let app: App | null = null;
-let isInitialized = false;
-let appContainer: HTMLElement | null = null;
+// Check if we're on a ChatGPT page
+const isChatGPTPage = () => {
+  const hostname = window.location.hostname;
+  return hostname.includes('chat.openai.com') || hostname.includes('chatgpt.com');
+};
 
-/**
- * Initialize the content script
- */
-async function initialize(): Promise<void> {
-  if (isInitialized) {
-    console.log('[BetterGPT Content] Already initialized');
+// Initialize the extension
+function initialize(): void {
+  if (!isChatGPTPage()) {
+    console.log('[BetterGPT] Not on ChatGPT page, skipping initialization');
     return;
   }
 
-  console.log('[BetterGPT Content] Initializing...');
+  console.log('[BetterGPT] Initializing on ChatGPT page');
 
   try {
-    // Get configuration from background
-    const response = await chrome.runtime.sendMessage({
-      type: 'GET_CONFIG',
+    // Create container for Svelte app
+    const appContainer = document.createElement('div');
+    appContainer.id = 'bettergpt-root';
+    appContainer.style.cssText = 'position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 9998;';
+    document.body.appendChild(appContainer);
+
+    // Initialize Svelte app
+    new App({
+      target: appContainer,
     });
 
-    if (response.success) {
-      console.log('[BetterGPT Content] Configuration received:', response.config);
-
-      // Update config store
-      config.set(response.config);
-
-      // Create container for Svelte app
-      appContainer = document.createElement('div');
-      appContainer.id = 'bettergpt-root';
-      document.body.appendChild(appContainer);
-
-      // Initialize Svelte app
-      app = new App({
-        target: appContainer,
-      });
-
-      isInitialized = true;
-      console.log('[BetterGPT Content] Initialization complete');
-    } else {
-      console.error('[BetterGPT Content] Failed to get configuration:', response.error);
-    }
+    console.log('[BetterGPT] Initialization complete');
   } catch (error) {
-    console.error('[BetterGPT Content] Initialization error:', error);
-    // If background script is not available, we may be in an invalid state
-    if (error instanceof Error && error.message.includes('Extension context invalidated')) {
-      console.warn('[BetterGPT Content] Extension context invalidated, may need reload');
-    }
+    console.error('[BetterGPT] Initialization error:', error);
   }
 }
-
-/**
- * Handle messages from background script
- */
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('[BetterGPT Content] Message received:', message);
-
-  switch (message.type) {
-    case 'TOGGLE_UI':
-      isUIVisible.update((value) => !value);
-      sendResponse({ success: true });
-      break;
-
-    case 'UPDATE_CONFIG':
-      config.set(message.config);
-      sendResponse({ success: true });
-      break;
-
-    default:
-      sendResponse({ success: false, error: 'Unknown message type' });
-  }
-});
-
-/**
- * Handle keyboard shortcuts
- */
-document.addEventListener('keydown', (event) => {
-  // Check for Ctrl+Shift+A (default toggle shortcut)
-  if (event.ctrlKey && event.shiftKey && event.key === 'A') {
-    event.preventDefault();
-    isUIVisible.update((value) => !value);
-  }
-});
-
-/**
- * Cleanup on page unload
- */
-window.addEventListener('beforeunload', () => {
-  if (app) {
-    app.$destroy();
-  }
-  if (appContainer) {
-    appContainer.remove();
-  }
-});
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
@@ -115,5 +47,4 @@ if (document.readyState === 'loading') {
   initialize();
 }
 
-// Export for testing
-export { initialize, app };
+export {};

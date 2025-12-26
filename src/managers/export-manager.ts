@@ -816,6 +816,7 @@ export class ExportManager {
     // Windows: < > : " / \ | ? *
     // Also remove control characters (0-31) and DEL (127)
     let sanitized = filename
+      // eslint-disable-next-line no-control-regex
       .replace(/[<>:"/\\|?*\x00-\x1f\x7f]/g, '_')
       .replace(/\s+/g, '_')  // Replace spaces with underscores
       .replace(/_+/g, '_')    // Collapse multiple underscores
@@ -851,7 +852,7 @@ export class ExportManager {
       '/': '&#x2F;'
     };
     
-    return text.replace(/[&<>"'\/]/g, (char) => htmlEscapeMap[char] || char);
+    return text.replace(/[&<>"'/]/g, (char) => htmlEscapeMap[char] || char);
   }
 
   /**

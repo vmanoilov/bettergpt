@@ -49,40 +49,44 @@ export class ChatGPTInterceptor {
    * Intercept fetch API calls
    */
   private interceptFetch(): void {
-    const self = this;
+    const originalFetch = this.originalFetch;
+    const isChatGPTApiUrl = this.isChatGPTApiUrl.bind(this);
+    const parseRequest = this.parseRequest.bind(this);
+    const handleStreamingResponse = this.handleStreamingResponse.bind(this);
+    const handleRegularResponse = this.handleRegularResponse.bind(this);
     
     window.fetch = async function(...args) {
       const [url, options] = args;
       
       // Check if this is a ChatGPT API call
-      if (self.isChatGPTApiUrl(url)) {
+      if (isChatGPTApiUrl(url)) {
         console.log('[ChatGPTInterceptor] Intercepted fetch request:', url);
         
         try {
           // Capture request
-          const requestData = await self.parseRequest(options);
+          const requestData = await parseRequest(options);
           
           // Make the actual request
-          const response = await self.originalFetch.apply(this, args);
+          const response = await originalFetch.apply(this, args);
           
           // Clone response for reading
           const clonedResponse = response.clone();
           
           // Handle streaming vs non-streaming responses
           if (requestData?.stream) {
-            self.handleStreamingResponse(clonedResponse, requestData);
+            handleStreamingResponse(clonedResponse, requestData);
           } else {
-            self.handleRegularResponse(clonedResponse, requestData);
+            handleRegularResponse(clonedResponse, requestData);
           }
           
           return response;
-        } catch (error) {
-          console.error('[ChatGPTInterceptor] Error intercepting fetch:', error);
-          return self.originalFetch.apply(this, args);
+        } catch (_error) {
+          console.error('[ChatGPTInterceptor] Error intercepting fetch:', _error);
+          return originalFetch.apply(this, args);
         }
       }
       
-      return self.originalFetch.apply(this, args);
+      return originalFetch.apply(this, args);
     };
   }
 
@@ -90,12 +94,14 @@ export class ChatGPTInterceptor {
    * Intercept XMLHttpRequest
    */
   private interceptXHR(): void {
-    const self = this;
+    const isChatGPTApiUrl = this.isChatGPTApiUrl.bind(this);
+    const handleXHRResponse = this.handleXHRResponse.bind(this);
+    const originalXHROpen = this.originalXHROpen;
     
-    XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: any[]) {
+    XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...rest: Array<boolean | string | null | undefined>) {
       const urlString = url.toString();
       
-      if (self.isChatGPTApiUrl(urlString)) {
+      if (isChatGPTApiUrl(urlString)) {
         console.log('[ChatGPTInterceptor] Intercepted XHR request:', urlString);
         
         // Store original onload handler
@@ -103,9 +109,9 @@ export class ChatGPTInterceptor {
         
         this.onload = function(event) {
           try {
-            self.handleXHRResponse(this);
-          } catch (error) {
-            console.error('[ChatGPTInterceptor] Error handling XHR response:', error);
+            handleXHRResponse(this);
+          } catch (_error) {
+            console.error('[ChatGPTInterceptor] Error handling XHR response:', _error);
           }
           
           if (originalOnLoad) {
@@ -114,7 +120,7 @@ export class ChatGPTInterceptor {
         };
       }
       
-      return self.originalXHROpen.call(this, method, url, ...rest);
+      return originalXHROpen.call(this, method, url, ...rest);
     };
   }
 
@@ -133,7 +139,7 @@ export class ChatGPTInterceptor {
              hostname === 'chat.openai.com' ||
              hostname.endsWith('.chat.openai.com') ||
              (urlObject.pathname && urlObject.pathname.includes('/backend-api'));
-    } catch (error) {
+    } catch (_error) {
       // Invalid URL
       return false;
     }
@@ -211,7 +217,7 @@ export class ChatGPTInterceptor {
               if (content) {
                 fullContent += content;
               }
-            } catch (e) {
+            } catch (_e) {
               // Ignore parsing errors for individual chunks
             }
           }

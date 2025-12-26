@@ -676,6 +676,7 @@ export async function testFilenameSanitization(): Promise<void> {
     }
     
     // Check for invalid characters
+    // eslint-disable-next-line no-control-regex
     const invalidChars = /[<>:"/\\|?*\x00-\x1f\x7f]/;
     if (invalidChars.test(result.filename)) {
       throw new Error(`Filename contains invalid characters: ${result.filename}`);

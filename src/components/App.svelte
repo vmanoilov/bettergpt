@@ -2,10 +2,14 @@
   import { onMount } from 'svelte';
   import ChatPanel from './ChatPanel.svelte';
   import Settings from './Settings.svelte';
+  import History from './History.svelte';
   import { isUIVisible } from '@stores';
+  import type { Message } from '../lib/db';
 
   let visible = false;
-  let showSettings = false;
+  let currentView: 'chat' | 'settings' | 'history' = 'chat';
+  let selectedConversationId: number | null = null;
+  let selectedMessages: Message[] = [];
 
   // Subscribe to store
   isUIVisible.subscribe((value) => {
@@ -14,11 +18,25 @@
 
   function handleClose() {
     isUIVisible.set(false);
-    showSettings = false;
+    currentView = 'chat';
   }
 
-  function toggleSettings() {
-    showSettings = !showSettings;
+  function showSettings() {
+    currentView = 'settings';
+  }
+
+  function showHistory() {
+    currentView = 'history';
+  }
+
+  function showChat() {
+    currentView = 'chat';
+  }
+
+  function handleSelectConversation(conversationId: number, messages: Message[]) {
+    selectedConversationId = conversationId;
+    selectedMessages = messages;
+    currentView = 'chat';
   }
 
   onMount(() => {
@@ -27,7 +45,7 @@
     // Listen for global settings toggle
     chrome.runtime.onMessage.addListener((message) => {
       if (message.type === 'TOGGLE_SETTINGS') {
-        showSettings = true;
+        currentView = 'settings';
         isUIVisible.set(true);
       }
     });
@@ -39,28 +57,47 @@
     ? 'translate-x-0'
     : 'translate-x-full'}"
 >
-  {#if showSettings}
-    <div class="relative h-full">
+  <div class="relative h-full">
+    {#if currentView === 'settings'}
       <Settings onClose={handleClose} />
       <button
-        on:click={toggleSettings}
-        class="absolute bottom-4 left-4 bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm hover:bg-neutral-800 transition-colors"
+        on:click={showChat}
+        class="absolute bottom-4 left-4 bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm hover:bg-neutral-800 transition-colors shadow-lg"
       >
         ← Back to Chat
       </button>
-    </div>
-  {:else}
-    <div class="relative h-full">
-      <ChatPanel onClose={handleClose} />
+    {:else if currentView === 'history'}
+      <History onClose={handleClose} onSelectConversation={handleSelectConversation} />
       <button
-        on:click={toggleSettings}
+        on:click={showChat}
         class="absolute bottom-4 left-4 bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm hover:bg-neutral-800 transition-colors shadow-lg"
-        title="Settings"
       >
-        ⚙️ Settings
+        ← Back to Chat
       </button>
-    </div>
-  {/if}
+    {:else}
+      <ChatPanel
+        onClose={handleClose}
+        initialConversationId={selectedConversationId}
+        initialMessages={selectedMessages}
+      />
+      <div class="absolute bottom-4 left-4 flex gap-2">
+        <button
+          on:click={showHistory}
+          class="bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm hover:bg-neutral-800 transition-colors shadow-lg"
+          title="History"
+        >
+          📜 History
+        </button>
+        <button
+          on:click={showSettings}
+          class="bg-neutral-700 text-white px-3 py-2 rounded-lg text-sm hover:bg-neutral-800 transition-colors shadow-lg"
+          title="Settings"
+        >
+          ⚙️ Settings
+        </button>
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>

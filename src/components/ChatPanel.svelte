@@ -2,8 +2,11 @@
   import { onMount } from 'svelte';
   import { capturePageContext } from '../content/context';
   import type { AIStreamChunkMessage } from '../content/types';
+  import type { Message } from '../lib/db';
 
   export let onClose: () => void = () => {};
+  export let initialConversationId: number | null = null;
+  export let initialMessages: Message[] = [];
 
   let messageInput = '';
   let messages: Array<{ role: 'user' | 'assistant'; content: string; streaming?: boolean }> = [];
@@ -12,6 +15,16 @@
   let messagesContainer: HTMLDivElement;
 
   onMount(() => {
+    // Load initial conversation if provided
+    if (initialConversationId && initialMessages.length > 0) {
+      currentConversationId = initialConversationId;
+      messages = initialMessages.map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }));
+      scrollToBottom();
+    }
+
     // Listen for streaming chunks
     chrome.runtime.onMessage.addListener(handleStreamChunk);
 

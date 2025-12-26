@@ -49,12 +49,21 @@ export function getDOMContext(maxLength: number = 500): string {
 
   // Truncate if too long
   if (context.length > maxLength) {
-    const start = Math.max(0, context.indexOf(selection.toString()) - maxLength / 2);
-    const end = Math.min(context.length, start + maxLength);
-    context =
-      (start > 0 ? '...' : '') +
-      context.substring(start, end) +
-      (end < context.length ? '...' : '');
+    const selectedText = selection.toString();
+    const selectedIndex = context.indexOf(selectedText);
+
+    if (selectedIndex !== -1) {
+      // Found the selected text in context
+      const start = Math.max(0, selectedIndex - maxLength / 2);
+      const end = Math.min(context.length, start + maxLength);
+      context =
+        (start > 0 ? '...' : '') +
+        context.substring(start, end) +
+        (end < context.length ? '...' : '');
+    } else {
+      // Selected text not found, just truncate from beginning
+      context = context.substring(0, maxLength) + (context.length > maxLength ? '...' : '');
+    }
   }
 
   return context.trim();

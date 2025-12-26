@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { capturePageContext } from '../content/context';
   import type { AIStreamChunkMessage } from '../content/types';
   import type { Message } from '../lib/db';
@@ -13,25 +13,6 @@
   let isLoading = false;
   let currentConversationId: number | null = null;
   let messagesContainer: HTMLDivElement;
-
-  onMount(() => {
-    // Load initial conversation if provided
-    if (initialConversationId && initialMessages.length > 0) {
-      currentConversationId = initialConversationId;
-      messages = initialMessages.map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      }));
-      scrollToBottom();
-    }
-
-    // Listen for streaming chunks
-    chrome.runtime.onMessage.addListener(handleStreamChunk);
-
-    return () => {
-      chrome.runtime.onMessage.removeListener(handleStreamChunk);
-    };
-  });
 
   function handleStreamChunk(message: AIStreamChunkMessage) {
     if (message.type === 'AI_STREAM_CHUNK') {
@@ -53,19 +34,32 @@
           );
         } else {
           // Create new streaming message
-          messages = [
-            ...messages,
-            {
-              role: 'assistant',
-              content: message.chunk,
-              streaming: true,
-            },
-          ];
+          messages = [...messages, { role: 'assistant', content: message.chunk, streaming: true }];
         }
         scrollToBottom();
       }
     }
   }
+
+  onMount(() => {
+    // Load initial conversation if provided
+    if (initialConversationId && initialMessages.length > 0) {
+      currentConversationId = initialConversationId;
+      messages = initialMessages.map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      }));
+      scrollToBottom();
+    }
+
+    // Listen for streaming chunks
+    chrome.runtime.onMessage.addListener(handleStreamChunk);
+  });
+
+  onDestroy(() => {
+    // Remove message listener on component destroy
+    chrome.runtime.onMessage.removeListener(handleStreamChunk);
+  });
 
   async function handleSendMessage() {
     if (!messageInput.trim() || isLoading) return;

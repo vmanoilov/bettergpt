@@ -258,39 +258,51 @@ async function handleAIRequest(
       });
 
       try {
+        let chunkCount = 0;
         await provider.sendStreamRequest(
           { messages: aiMessages, stream: true },
           async (chunk: AIStreamChunk) => {
             if (!chunk.done && chunk.content) {
               assistantContent += chunk.content;
+              chunkCount++;
 
-              // Send chunk to content script
-              chrome.tabs.sendMessage(tabId, {
-                type: 'AI_STREAM_CHUNK',
-                chunk: chunk.content,
-                done: false,
-                conversationId,
-                messageId: assistantMessageId,
-              });
+              // Send chunk to content script with error handling
+              try {
+                await chrome.tabs.sendMessage(tabId, {
+                  type: 'AI_STREAM_CHUNK',
+                  chunk: chunk.content,
+                  done: false,
+                  conversationId,
+                  messageId: assistantMessageId,
+                });
+              } catch (error) {
+                console.warn('[BetterGPT] Failed to send chunk to tab:', error);
+              }
 
-              // Update message in database periodically
-              await db.messages.update(assistantMessageId, {
-                content: assistantContent,
-              });
+              // Update message in database periodically (every 10 chunks or when done)
+              if (chunkCount % 10 === 0) {
+                await db.messages.update(assistantMessageId, {
+                  content: assistantContent,
+                });
+              }
             } else if (chunk.done) {
               // Final update
               await db.messages.update(assistantMessageId, {
                 content: assistantContent,
               });
 
-              // Send done signal
-              chrome.tabs.sendMessage(tabId, {
-                type: 'AI_STREAM_CHUNK',
-                chunk: '',
-                done: true,
-                conversationId,
-                messageId: assistantMessageId,
-              });
+              // Send done signal with error handling
+              try {
+                await chrome.tabs.sendMessage(tabId, {
+                  type: 'AI_STREAM_CHUNK',
+                  chunk: '',
+                  done: true,
+                  conversationId,
+                  messageId: assistantMessageId,
+                });
+              } catch (error) {
+                console.warn('[BetterGPT] Failed to send done signal to tab:', error);
+              }
             }
           }
         );

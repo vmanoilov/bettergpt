@@ -11,6 +11,9 @@ export interface ExtensionConfig {
   shortcuts: {
     toggleUI: string;
   };
+  apiKey?: string; // OpenAI API key for AI requests
+  model?: string; // AI model to use (default: gpt-3.5-turbo)
+  maxTokens?: number; // Maximum tokens for AI responses
 }
 
 /**

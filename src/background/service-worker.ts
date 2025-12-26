@@ -133,7 +133,7 @@ async function handleFirstInstall(): Promise<void> {
     enabled: true,
     theme: 'system',
     shortcuts: {
-      toggleUI: 'Ctrl+Shift+A'
+      toggleUI: 'Ctrl+B'
     }
   };
 

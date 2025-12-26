@@ -45,6 +45,9 @@
     "dist",
     "node_modules",
     "*.config.js",
-    "*.config.ts"
+    "*.config.ts",
+    "*.config.mjs",
+    "*.config.mts",
+    "build.js"
   ]
 }

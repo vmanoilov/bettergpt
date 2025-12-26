@@ -59,7 +59,7 @@ export class ProviderManager {
    * Update provider configuration or add new provider
    */
   async updateProvider(providerId: string, config: Partial<ProviderConfig>): Promise<void> {
-    let provider = this.providers.get(providerId);
+    const provider = this.providers.get(providerId);
     
     if (!provider) {
       // If provider doesn't exist and we have a full config, create it

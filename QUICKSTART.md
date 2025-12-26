@@ -32,9 +32,10 @@ This will watch for changes and automatically rebuild.
 
 ### Using the Extension
 
-- Press **Ctrl+Shift+A** (or **Cmd+Shift+A** on Mac) to toggle the UI
-- The chat panel will slide in from the right side of any webpage
-- Type a message and press "Send" (AI integration coming in Phase 2)
+- Navigate to ChatGPT (https://chat.openai.com or https://chatgpt.com)
+- Press **Ctrl+B** (or **Cmd+B** on Mac) to toggle the sidebar
+- Press **Ctrl+K** (or **Cmd+K** on Mac) to open the command palette
+- The extension automatically captures your ChatGPT conversations
 
 ## Code Quality
 

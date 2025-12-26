@@ -208,12 +208,38 @@ export class ChatGPTObserver {
   }
 
   /**
-   * Generate a unique message ID
+   * Generate a stable DOM path for an element based on its tag name and sibling index.
+   * This avoids using viewport-dependent geometry like getBoundingClientRect().
+   */
+  private getElementDomPath(element: Element): string {
+    const segments: string[] = [];
+    let current: Element | null = element;
+
+    // Limit depth to avoid excessively long paths in deeply nested DOMs
+    while (current && segments.length < 20) {
+      let index = 0;
+      let sibling = current.previousElementSibling;
+      while (sibling) {
+        index++;
+        sibling = sibling.previousElementSibling;
+      }
+      const tag = current.tagName ? current.tagName.toLowerCase() : 'node';
+      segments.unshift(`${tag}:nth-child(${index})`);
+      current = current.parentElement;
+    }
+
+    return segments.join('>');
+  }
+
+  /**
+   * Generate a unique message ID using content hash and stable DOM path
    */
   private generateMessageId(element: Element): string {
-    const content = this.extractContent(element);
-    const role = this.extractRole(element);
-    return `${role}-${content.substring(0, 50)}-${element.getBoundingClientRect().top}`;
+    const content = this.extractContent(element) || '';
+    const role = this.extractRole(element) || 'unknown';
+    const contentSnippet = content.substring(0, 50);
+    const domPath = this.getElementDomPath(element);
+    return `${role}-${contentSnippet}-${domPath}`;
   }
 
   /**

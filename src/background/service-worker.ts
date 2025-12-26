@@ -4,17 +4,16 @@
  * This service worker handles:
  * - Extension lifecycle events
  * - Message passing between content scripts and extension
- * - Background tasks and API calls (including OpenAI integration)
+ * - Background tasks and API calls (including AI provider integration)
  * - State management across extension components
  * - Service worker lifecycle management for long-running operations
  */
 
 import type { AIRequestPayload, AIResponseMessage, ConfigResponse, ExtensionConfig } from '../content/types';
+import { providerManager } from '../providers/provider-manager';
+import type { ProviderConfig } from '../providers/base-provider';
 
 // Constants
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
-const DEFAULT_MODEL = 'gpt-3.5-turbo';
-const DEFAULT_MAX_TOKENS = 1000;
 const SERVICE_WORKER_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 // Logging levels
@@ -129,6 +128,11 @@ chrome.runtime.onStartup.addListener(() => {
   });
 });
 
+// Initialize provider manager on startup
+providerManager.initialize().catch((error) => {
+  Logger.error('Error initializing provider manager:', error);
+});
+
 // Message listener for communication with content scripts and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   Logger.debug('Message received:', message);
@@ -152,6 +156,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       handleAIRequest(message.payload, sendResponse)
         .finally(() => stopKeepAlive());
       return true; // Indicates async response
+      
+    case 'GET_PROVIDERS':
+      handleGetProviders(sendResponse);
+      return true;
+      
+    case 'UPDATE_PROVIDER':
+      handleUpdateProvider(message.providerId, message.providerConfig, sendResponse);
+      return true;
+      
+    case 'SET_ACTIVE_PROVIDER':
+      handleSetActiveProvider(message.providerId, sendResponse);
+      return true;
+      
+    case 'TEST_PROVIDER':
+      handleTestProvider(message.providerId, sendResponse);
+      return true;
       
     default:
       Logger.warn('Unknown message type:', message.type);
@@ -183,12 +203,14 @@ async function handleFirstInstall(): Promise<void> {
       shortcuts: {
         toggleUI: 'Ctrl+Shift+A'
       },
-      model: DEFAULT_MODEL,
-      maxTokens: DEFAULT_MAX_TOKENS,
-      // apiKey is not set by default - user must configure
+      // Legacy fields kept for backward compatibility
+      // Provider system now handles API configuration
     };
     
     await chrome.storage.local.set({ config: defaultConfig });
+    
+    // Initialize provider manager
+    await providerManager.initialize();
     
     Logger.info('Default configuration saved');
   } catch (error) {
@@ -224,6 +246,9 @@ async function handleUpdate(previousVersion?: string): Promise<void> {
 async function initializeExtension(): Promise<void> {
   try {
     Logger.info('Initializing extension');
+    
+    // Initialize provider manager
+    await providerManager.initialize();
     
     // Load configuration
     const result = await chrome.storage.local.get('config');
@@ -286,7 +311,7 @@ async function handleUpdateConfig(
 }
 
 /**
- * Handle AI requests with OpenAI API integration
+ * Handle AI requests using the provider manager
  */
 async function handleAIRequest(
   payload: AIRequestPayload,
@@ -300,20 +325,14 @@ async function handleAIRequest(
       throw new Error('Invalid AI request payload: message is required');
     }
     
-    // Get configuration with API key
-    const result = await chrome.storage.local.get('config');
-    const config = result.config as ExtensionConfig | undefined;
-    
-    if (!config) {
-      throw new Error('Configuration not found. Please initialize the extension.');
+    // Get active provider
+    const activeProvider = providerManager.getActiveProvider();
+    if (!activeProvider) {
+      throw new Error('No AI provider configured. Please configure a provider in settings.');
     }
     
-    if (!config.apiKey) {
-      throw new Error('OpenAI API key not configured. Please add your API key in settings.');
-    }
-    
-    // Prepare messages array for OpenAI API
-    const messages: Array<{ role: string; content: string }> = [];
+    // Build messages array
+    const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [];
     
     // Add context if provided
     if (payload.context) {
@@ -329,46 +348,18 @@ async function handleAIRequest(
       content: payload.message
     });
     
-    // Prepare API request
-    const requestBody = {
-      model: config.model || DEFAULT_MODEL,
-      messages: messages,
-      max_tokens: config.maxTokens || DEFAULT_MAX_TOKENS,
-      temperature: 0.7,
-    };
+    Logger.debug('Sending request to AI provider');
     
-    Logger.debug('Sending request to OpenAI API');
-    
-    // Make API request
-    const response = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify(requestBody),
+    // Send request through provider
+    const response = await providerManager.sendRequest({
+      messages,
     });
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
-      const errorMessage = errorData.error?.message || `HTTP error ${response.status}`;
-      Logger.error('OpenAI API error:', errorMessage);
-      throw new Error(`OpenAI API error: ${errorMessage}`);
-    }
-    
-    const data = await response.json();
-    
-    // Extract the AI response
-    if (!data.choices || data.choices.length === 0) {
-      throw new Error('No response from AI model');
-    }
-    
-    const aiResponse = data.choices[0].message.content;
     Logger.info('AI request completed successfully');
     
     sendResponse({
       success: true,
-      result: aiResponse
+      result: response.content
     });
     
   } catch (error) {
@@ -378,6 +369,87 @@ async function handleAIRequest(
     sendResponse({ 
       success: false, 
       error: errorMessage
+    });
+  }
+}
+
+/**
+ * Handle get providers request
+ */
+async function handleGetProviders(
+  sendResponse: (response: { success: boolean; providers?: ProviderConfig[]; error?: string }) => void
+): Promise<void> {
+  try {
+    const providers = providerManager.getAllProviders();
+    const activeProviderId = providerManager.getActiveProviderId();
+    
+    sendResponse({
+      success: true,
+      providers: providers.map(p => ({ ...p, active: p.id === activeProviderId })) as ProviderConfig[],
+    });
+  } catch (error) {
+    Logger.error('Error getting providers:', error);
+    sendResponse({
+      success: false,
+      error: String(error),
+    });
+  }
+}
+
+/**
+ * Handle update provider request
+ */
+async function handleUpdateProvider(
+  providerId: string,
+  providerConfig: Partial<ProviderConfig>,
+  sendResponse: (response: { success: boolean; error?: string }) => void
+): Promise<void> {
+  try {
+    await providerManager.updateProvider(providerId, providerConfig);
+    sendResponse({ success: true });
+  } catch (error) {
+    Logger.error('Error updating provider:', error);
+    sendResponse({
+      success: false,
+      error: String(error),
+    });
+  }
+}
+
+/**
+ * Handle set active provider request
+ */
+async function handleSetActiveProvider(
+  providerId: string,
+  sendResponse: (response: { success: boolean; error?: string }) => void
+): Promise<void> {
+  try {
+    await providerManager.setActiveProvider(providerId);
+    sendResponse({ success: true });
+  } catch (error) {
+    Logger.error('Error setting active provider:', error);
+    sendResponse({
+      success: false,
+      error: String(error),
+    });
+  }
+}
+
+/**
+ * Handle test provider request
+ */
+async function handleTestProvider(
+  providerId: string,
+  sendResponse: (response: { success: boolean; error?: string }) => void
+): Promise<void> {
+  try {
+    const result = await providerManager.testProvider(providerId);
+    sendResponse(result);
+  } catch (error) {
+    Logger.error('Error testing provider:', error);
+    sendResponse({
+      success: false,
+      error: String(error),
     });
   }
 }
